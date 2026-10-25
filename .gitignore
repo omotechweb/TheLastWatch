@@ -1,0 +1,16 @@
+# Unreal generated
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+
+# Plugin build output
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
