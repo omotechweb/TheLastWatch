@@ -1,6 +1,8 @@
 // The Last Watch
 
 #include "LastWatchPlayerController.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
@@ -20,11 +22,14 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "Kismet/GameplayStatics.h"
+#include "Containers/Ticker.h"
 #include "UObject/ConstructorHelpers.h"
 #include "FootstepComponent.h"
 #include "GameDataSubsystem.h"
 #include "HorrorUI.h"
 #include "Interactables.h"
+#include "KeeperSaveSubsystem.h"
 #include "InventoryComponent.h"
 #include "LastWatchGameMode.h"
 #include "LastWatchHUD.h"
@@ -64,6 +69,9 @@ namespace
 	{
 		UInputAction* Action = NewObject<UInputAction>(Outer, Name);
 		Action->ValueType = Type;
+
+		// menus run while the game is paused
+		Action->bTriggerWhenPaused = true;
 		return Action;
 	}
 
@@ -88,6 +96,8 @@ void ALastWatchPlayerController::CreateKeeperInput()
 	ListDownAction   = MakeAction(this, TEXT("IA_ListDown"));
 	TuneAction       = MakeAction(this, TEXT("IA_Tune"), EInputActionValueType::Axis1D);
 	TuneWheelAction  = MakeAction(this, TEXT("IA_TuneWheel"), EInputActionValueType::Axis1D);
+	PauseAction      = MakeAction(this, TEXT("IA_Pause"));
+	MenuConfirmAction = MakeAction(this, TEXT("IA_MenuConfirm"));
 
 	ExploreContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Keeper"));
 	ExploreContext->MapKey(InteractAction, EKeys::E);
@@ -100,6 +110,9 @@ void ALastWatchPlayerController::CreateKeeperInput()
 	ExploreContext->MapKey(InventoryAction, EKeys::Tab);
 	ExploreContext->MapKey(InventoryAction, EKeys::I);
 	ExploreContext->MapKey(InventoryAction, EKeys::Gamepad_Special_Right);
+	ExploreContext->MapKey(PauseAction, EKeys::Escape);
+	ExploreContext->MapKey(PauseAction, EKeys::P);
+	ExploreContext->MapKey(PauseAction, EKeys::Gamepad_Special_Left);
 
 	OverlayContext = NewObject<UInputMappingContext>(this, TEXT("IMC_KeeperOverlay"));
 	OverlayContext->MapKey(PagePrevAction, EKeys::A);
@@ -133,6 +146,32 @@ void ALastWatchPlayerController::CreateKeeperInput()
 	// swallow movement keys while tuning
 	RadioContext->MapKey(ListUpAction, EKeys::W);
 	RadioContext->MapKey(ListDownAction, EKeys::S);
+
+	MenuContext = NewObject<UInputMappingContext>(this, TEXT("IMC_KeeperMenu"));
+	for (const FKey& Key : { EKeys::W, EKeys::Up, EKeys::Gamepad_DPad_Up })
+	{
+		MenuContext->MapKey(ListUpAction, Key);
+	}
+	for (const FKey& Key : { EKeys::S, EKeys::Down, EKeys::Gamepad_DPad_Down })
+	{
+		MenuContext->MapKey(ListDownAction, Key);
+	}
+	for (const FKey& Key : { EKeys::A, EKeys::Left, EKeys::Gamepad_DPad_Left })
+	{
+		MenuContext->MapKey(PagePrevAction, Key);
+	}
+	for (const FKey& Key : { EKeys::D, EKeys::Right, EKeys::Gamepad_DPad_Right })
+	{
+		MenuContext->MapKey(PageNextAction, Key);
+	}
+	for (const FKey& Key : { EKeys::E, EKeys::Enter, EKeys::SpaceBar, EKeys::Gamepad_FaceButton_Bottom })
+	{
+		MenuContext->MapKey(MenuConfirmAction, Key);
+	}
+	for (const FKey& Key : { EKeys::Escape, EKeys::BackSpace, EKeys::Gamepad_FaceButton_Right, EKeys::Gamepad_Special_Left })
+	{
+		MenuContext->MapKey(BackAction, Key);
+	}
 }
 
 void ALastWatchPlayerController::SetupInputComponent()
@@ -158,6 +197,8 @@ void ALastWatchPlayerController::SetupInputComponent()
 		Input->BindAction(ListDownAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnListDown);
 		Input->BindAction(TuneAction, ETriggerEvent::Triggered, this, &ALastWatchPlayerController::OnTune);
 		Input->BindAction(TuneWheelAction, ETriggerEvent::Triggered, this, &ALastWatchPlayerController::OnTuneWheel);
+		Input->BindAction(PauseAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnPause);
+		Input->BindAction(MenuConfirmAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnMenuConfirm);
 	}
 	else
 	{
@@ -186,6 +227,7 @@ void ALastWatchPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	SetMode(EKeeperMode::Explore);
+	ApplyPlayerSettings();
 
 	// the template horror character ships with jumping and crouching switched off
 	if (ACharacter* KeeperCharacter = Cast<ACharacter>(InPawn))
@@ -243,6 +285,7 @@ void ALastWatchPlayerController::SetMode(EKeeperMode NewMode)
 	{
 		Subsystem->RemoveMappingContext(OverlayContext);
 		Subsystem->RemoveMappingContext(RadioContext);
+		Subsystem->RemoveMappingContext(MenuContext);
 
 		if (Mode == EKeeperMode::Reading || Mode == EKeeperMode::Inventory)
 		{
@@ -251,6 +294,10 @@ void ALastWatchPlayerController::SetMode(EKeeperMode NewMode)
 		else if (Mode == EKeeperMode::Radio)
 		{
 			Subsystem->AddMappingContext(RadioContext, 10);
+		}
+		else if (Mode == EKeeperMode::Menu)
+		{
+			Subsystem->AddMappingContext(MenuContext, 10);
 		}
 	}
 
@@ -266,6 +313,12 @@ void ALastWatchPlayerController::SetMode(EKeeperMode NewMode)
 	if (Mode != EKeeperMode::Explore)
 	{
 		Focused.Reset();
+	}
+
+	// the template sprint meter only belongs on the island, not over menus or documents
+	if (HorrorUI)
+	{
+		HorrorUI->SetVisibility(Mode == EKeeperMode::Explore ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 }
 
@@ -305,6 +358,10 @@ void ALastWatchPlayerController::PlayerTick(float DeltaTime)
 	if (Mode == EKeeperMode::Explore)
 	{
 		UpdateFocus();
+	}
+	else if (IsInMenu(EMenuPage::Title))
+	{
+		UpdateTitleCamera(DeltaTime);
 	}
 
 	// hold-to-use: keep looking at the task with E down until the bar fills
@@ -447,6 +504,9 @@ void ALastWatchPlayerController::OnInteract()
 		}
 		break;
 
+	case EKeeperMode::Menu:
+		break;
+
 	default:
 		OnBack();
 		break;
@@ -491,6 +551,19 @@ void ALastWatchPlayerController::OnJumpCompleted()
 
 void ALastWatchPlayerController::OnBack()
 {
+	if (Mode == EKeeperMode::Menu)
+	{
+		switch (MenuPage)
+		{
+		case EMenuPage::Pause:    CloseMenu(); break;
+		case EMenuPage::Settings: SetMenuPage(SettingsParent); break;
+		case EMenuPage::Chapters: SetMenuPage(EMenuPage::Title); break;
+		case EMenuPage::Ending:   OnMenuConfirm(); break;
+		default: break;
+		}
+		return;
+	}
+
 	if (Mode == EKeeperMode::Reading && bReadingFromInventory)
 	{
 		bReadingFromInventory = false;
@@ -502,6 +575,10 @@ void ALastWatchPlayerController::OnBack()
 
 void ALastWatchPlayerController::OnToggleInventory()
 {
+	if (Mode == EKeeperMode::Menu)
+	{
+		return;
+	}
 	if (Mode == EKeeperMode::Explore)
 	{
 		InventorySelection = FMath::Clamp(InventorySelection, 0, FMath::Max(0, Inventory->GetNotes().Num() - 1));
@@ -516,6 +593,11 @@ void ALastWatchPlayerController::OnToggleInventory()
 
 void ALastWatchPlayerController::OnPagePrev()
 {
+	if (Mode == EKeeperMode::Menu)
+	{
+		ActivateMenuEntry(MenuSelection, -1);
+		return;
+	}
 	if (Mode == EKeeperMode::Reading)
 	{
 		NotePage = FMath::Max(0, NotePage - 1);
@@ -524,6 +606,11 @@ void ALastWatchPlayerController::OnPagePrev()
 
 void ALastWatchPlayerController::OnPageNext()
 {
+	if (Mode == EKeeperMode::Menu)
+	{
+		ActivateMenuEntry(MenuSelection, 1);
+		return;
+	}
 	if (Mode != EKeeperMode::Reading)
 	{
 		return;
@@ -539,6 +626,20 @@ void ALastWatchPlayerController::OnPageNext()
 
 void ALastWatchPlayerController::OnListUp()
 {
+	if (Mode == EKeeperMode::Menu)
+	{
+		// skip greyed out lines
+		const TArray<FMenuEntry> Entries = GetMenuEntries();
+		for (int32 Index = MenuSelection - 1; Index >= 0; --Index)
+		{
+			if (Entries[Index].bEnabled)
+			{
+				MenuSelection = Index;
+				break;
+			}
+		}
+		return;
+	}
 	if (Mode == EKeeperMode::Inventory)
 	{
 		InventorySelection = FMath::Max(0, InventorySelection - 1);
@@ -547,6 +648,19 @@ void ALastWatchPlayerController::OnListUp()
 
 void ALastWatchPlayerController::OnListDown()
 {
+	if (Mode == EKeeperMode::Menu)
+	{
+		const TArray<FMenuEntry> Entries = GetMenuEntries();
+		for (int32 Index = MenuSelection + 1; Index < Entries.Num(); ++Index)
+		{
+			if (Entries[Index].bEnabled)
+			{
+				MenuSelection = Index;
+				break;
+			}
+		}
+		return;
+	}
 	if (Mode == EKeeperMode::Inventory)
 	{
 		InventorySelection = FMath::Min(InventorySelection + 1, FMath::Max(0, Inventory->GetNotes().Num() - 1));
@@ -567,6 +681,361 @@ void ALastWatchPlayerController::OnTuneWheel(const FInputActionValue& Value)
 	{
 		Radio->Tune(FMath::Sign(Value.Get<float>()) * TuneWheelStep);
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Menus
+
+namespace
+{
+	FText MenuText(const UObject* Context, const TCHAR* Key, const FText& Arg = FText::GetEmpty())
+	{
+		const UGameDataSubsystem* Data = UGameDataSubsystem::Get(Context);
+		return Data ? Data->GetUIText(Key, Arg) : FText::FromString(Key);
+	}
+
+	FMenuEntry MakeEntry(const UObject* Context, const TCHAR* Id, const TCHAR* Key, FText Value = FText::GetEmpty(), bool bEnabled = true)
+	{
+		FMenuEntry Entry;
+		Entry.Id = Id;
+		Entry.Label = MenuText(Context, Key);
+		Entry.Value = MoveTemp(Value);
+		Entry.bEnabled = bEnabled;
+		return Entry;
+	}
+
+	FText OnOff(const UObject* Context, bool bOn)
+	{
+		return MenuText(Context, bOn ? TEXT("opt.on") : TEXT("opt.off"));
+	}
+}
+
+void ALastWatchPlayerController::OpenTitle()
+{
+	// the lamp turns behind the title; the story puts it out again when a night starts
+	const ALighthouseBeam* Lamp = nullptr;
+	for (TActorIterator<ALighthouseBeam> It(GetWorld()); It; ++It)
+	{
+		It->SetLit(true);
+		Lamp = *It;
+	}
+
+	if (!TitleCamera)
+	{
+		TitleCamera = GetWorld()->SpawnActor<ACameraActor>();
+		TitleCamera->GetCameraComponent()->SetFieldOfView(55.0f);
+		TitleCamera->GetCameraComponent()->SetConstraintAspectRatio(false);
+	}
+
+	// start on the keeper's side of the tower
+	if (Lamp && GetPawn())
+	{
+		TitleOrbitAngle = (GetPawn()->GetActorLocation() - Lamp->GetActorLocation()).Rotation().Yaw;
+	}
+	UpdateTitleCamera(0.0f);
+	SetViewTarget(TitleCamera);
+
+	if (ALastWatchHUD* KeeperHUD = GetKeeperHUD())
+	{
+		KeeperHUD->SnapFade(1.0f);
+		KeeperHUD->FadeTo(0.0f, 3.0f);
+	}
+	SetMenuPage(EMenuPage::Title);
+}
+
+void ALastWatchPlayerController::UpdateTitleCamera(float DeltaTime)
+{
+	const ALighthouseBeam* Lamp = nullptr;
+	for (TActorIterator<ALighthouseBeam> It(GetWorld()); It; ++It)
+	{
+		Lamp = *It;
+		break;
+	}
+	if (!Lamp || !TitleCamera)
+	{
+		return;
+	}
+
+	TitleOrbitAngle += TitleOrbitSpeed * DeltaTime;
+	const float Radians = FMath::DegreesToRadians(TitleOrbitAngle);
+	const FVector Target = Lamp->GetActorLocation();
+	const FVector Eye = Target + FVector(FMath::Cos(Radians) * TitleOrbitRadius, FMath::Sin(Radians) * TitleOrbitRadius, TitleOrbitHeight);
+
+	// look a little left of the tower so it stands on the right, clear of the menu
+	FRotator View = (Target - Eye).Rotation();
+	View.Yaw -= 11.0f;
+	TitleCamera->SetActorLocationAndRotation(Eye, View);
+}
+
+void ALastWatchPlayerController::OpenPause()
+{
+	if (Mode != EKeeperMode::Explore)
+	{
+		return;
+	}
+	SetPause(true);
+	SetMenuPage(EMenuPage::Pause);
+}
+
+void ALastWatchPlayerController::CloseMenu()
+{
+	SetPause(false);
+	ShowCursor(false);
+	if (GetPawn() && GetViewTarget() != GetPawn())
+	{
+		SetViewTarget(GetPawn());
+	}
+	ReturnToExplore();
+}
+
+void ALastWatchPlayerController::EnterEnding()
+{
+	ReturnToExplore();
+	EndingStart = GetWorld()->GetRealTimeSeconds();
+	MenuPage = EMenuPage::Ending;
+	SetMode(EKeeperMode::Menu);
+}
+
+void ALastWatchPlayerController::ReturnToTitle()
+{
+	SetPause(false);
+	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
+}
+
+void ALastWatchPlayerController::SetMenuPage(EMenuPage Page)
+{
+	UE_LOG(LogTheLastWatch, Display, TEXT("Menu: page %d"), static_cast<int32>(Page));
+	MenuPage = Page;
+	if (Mode != EKeeperMode::Menu)
+	{
+		ReturnToExplore();
+		SetMode(EKeeperMode::Menu);
+	}
+	ShowCursor(true);
+
+	MenuSelection = 0;
+	const TArray<FMenuEntry> Entries = GetMenuEntries();
+	while (Entries.IsValidIndex(MenuSelection) && !Entries[MenuSelection].bEnabled)
+	{
+		++MenuSelection;
+	}
+}
+
+void ALastWatchPlayerController::ShowCursor(bool bShow)
+{
+	bShowMouseCursor = bShow;
+	if (bShow)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetHideCursorDuringCapture(false);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+	}
+	else
+	{
+		SetInputMode(FInputModeGameOnly());
+	}
+}
+
+TArray<FMenuEntry> ALastWatchPlayerController::GetMenuEntries() const
+{
+	TArray<FMenuEntry> Entries;
+	const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+	const ULastWatchSettingsSave* Settings = Save ? Save->GetSettings() : nullptr;
+
+	switch (MenuPage)
+	{
+	case EMenuPage::Title:
+		if (Save && Save->HasProgress())
+		{
+			Entries.Add(MakeEntry(this, TEXT("continue"), TEXT("menu.continue"), MenuText(this, TEXT("menu.night"), FText::AsNumber(Save->GetSavedNight()))));
+		}
+		Entries.Add(MakeEntry(this, TEXT("new_game"), TEXT("menu.new_game")));
+		Entries.Add(MakeEntry(this, TEXT("chapters"), TEXT("menu.chapters"), FText::GetEmpty(), Save && Save->HasProgress()));
+		Entries.Add(MakeEntry(this, TEXT("settings"), TEXT("menu.settings")));
+		Entries.Add(MakeEntry(this, TEXT("quit"), TEXT("menu.quit")));
+		break;
+
+	case EMenuPage::Pause:
+		Entries.Add(MakeEntry(this, TEXT("resume"), TEXT("menu.resume")));
+		Entries.Add(MakeEntry(this, TEXT("settings"), TEXT("menu.settings")));
+		Entries.Add(MakeEntry(this, TEXT("title"), TEXT("menu.to_title")));
+		Entries.Add(MakeEntry(this, TEXT("quit"), TEXT("menu.quit")));
+		break;
+
+	case EMenuPage::Chapters:
+		{
+			const UGameDataSubsystem* Data = UGameDataSubsystem::Get(this);
+			for (int32 Night = 1; Night <= 5; ++Night)
+			{
+				const bool bUnlocked = Save && Save->IsNightUnlocked(Night);
+				const FNightData* NightData = Data ? Data->FindNight(Night) : nullptr;
+				FMenuEntry Entry;
+				Entry.Id = FName(TEXT("night"), Night);
+				Entry.Label = MenuText(this, TEXT("menu.night"), FText::AsNumber(Night));
+				Entry.Value = !bUnlocked ? MenuText(this, TEXT("menu.locked")) : NightData ? NightData->Title.Get() : FText::GetEmpty();
+				Entry.bEnabled = bUnlocked;
+				Entries.Add(Entry);
+			}
+			Entries.Add(MakeEntry(this, TEXT("back"), TEXT("menu.back")));
+		}
+		break;
+
+	case EMenuPage::Settings:
+		if (Settings)
+		{
+			const TCHAR* SubtitleKeys[] = { TEXT("opt.small"), TEXT("opt.normal"), TEXT("opt.large") };
+			Entries.Add(MakeEntry(this, TEXT("language"), TEXT("set.language"), MenuText(this, TEXT("lang.current"))));
+			Entries.Add(MakeEntry(this, TEXT("subtitles"), TEXT("set.subtitles"), MenuText(this, SubtitleKeys[FMath::Clamp(Settings->SubtitleSize, 0, 2)])));
+			Entries.Add(MakeEntry(this, TEXT("objectives"), TEXT("set.objectives"), OnOff(this, Settings->bShowObjectives)));
+			Entries.Add(MakeEntry(this, TEXT("sensitivity"), TEXT("set.sensitivity"), FText::FromString(FString::Printf(TEXT("%.1f"), Settings->MouseSensitivity))));
+			Entries.Add(MakeEntry(this, TEXT("invert"), TEXT("set.invert"), OnOff(this, Settings->bInvertY)));
+			Entries.Add(MakeEntry(this, TEXT("fov"), TEXT("set.fov"), FText::FromString(FString::Printf(TEXT("%d°"), FMath::RoundToInt(Settings->FieldOfView)))));
+			Entries.Add(MakeEntry(this, TEXT("volume"), TEXT("set.volume"), FText::FromString(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Settings->MasterVolume * 100.0f)))));
+		}
+		Entries.Add(MakeEntry(this, TEXT("back"), TEXT("menu.back")));
+		break;
+
+	default:
+		break;
+	}
+	return Entries;
+}
+
+void ALastWatchPlayerController::ActivateMenuEntry(int32 Index, int32 Direction)
+{
+	const TArray<FMenuEntry> Entries = GetMenuEntries();
+	if (!Entries.IsValidIndex(Index) || !Entries[Index].bEnabled)
+	{
+		return;
+	}
+	MenuSelection = Index;
+	const FName Id = Entries[Index].Id;
+	UE_LOG(LogTheLastWatch, Display, TEXT("Menu: %s (%d)"), *Id.ToString(), Direction);
+
+	UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+	ULastWatchSettingsSave* Settings = Save ? Save->GetSettings() : nullptr;
+
+	// settings: left/right step the value, confirm or click steps it forward
+	if (Settings)
+	{
+		const int32 Step = Direction == 0 ? 1 : Direction;
+		bool bChanged = true;
+		if (Id == TEXT("language"))         { Settings->Language = Settings->Language == TEXT("tr") ? TEXT("en") : TEXT("tr"); }
+		else if (Id == TEXT("subtitles"))   { Settings->SubtitleSize = (Settings->SubtitleSize + Step + 3) % 3; }
+		else if (Id == TEXT("objectives"))  { Settings->bShowObjectives = !Settings->bShowObjectives; }
+		else if (Id == TEXT("sensitivity")) { Settings->MouseSensitivity = FMath::Clamp(FMath::RoundToFloat((Settings->MouseSensitivity + 0.1f * Step) * 10.0f) / 10.0f, 0.2f, 3.0f); }
+		else if (Id == TEXT("invert"))      { Settings->bInvertY = !Settings->bInvertY; }
+		else if (Id == TEXT("fov"))         { Settings->FieldOfView = FMath::Clamp(Settings->FieldOfView + 5.0f * Step, 70.0f, 110.0f); }
+		else if (Id == TEXT("volume"))      { Settings->MasterVolume = FMath::Clamp(FMath::RoundToFloat((Settings->MasterVolume + 0.1f * Step) * 10.0f) / 10.0f, 0.0f, 1.0f); }
+		else { bChanged = false; }
+
+		if (bChanged)
+		{
+			Save->SaveSettings();
+			ApplyPlayerSettings();
+			return;
+		}
+	}
+
+	if (Direction != 0)
+	{
+		return;
+	}
+
+	// play from the start of a night, carrying what the keeper had then
+	auto StartNight = [this, Save](int32 Night)
+	{
+		if (Save)
+		{
+			Save->RestoreNight(Night, this);
+		}
+		CloseMenu();
+		if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+		{
+			Story->StartNight(Night);
+		}
+	};
+
+	if (Id == TEXT("continue") && Save)
+	{
+		StartNight(Save->GetSavedNight());
+	}
+	else if (Id == TEXT("new_game"))
+	{
+		if (Save)
+		{
+			Save->ResetProgress();
+		}
+		StartNight(1);
+	}
+	else if (Id == TEXT("chapters"))  { SetMenuPage(EMenuPage::Chapters); }
+	else if (Id == TEXT("settings"))
+	{
+		SettingsParent = MenuPage;
+		SetMenuPage(EMenuPage::Settings);
+	}
+	else if (Id == TEXT("resume"))    { CloseMenu(); }
+	else if (Id == TEXT("title"))     { ReturnToTitle(); }
+	else if (Id == TEXT("back"))      { OnBack(); }
+	else if (Id == TEXT("quit"))      { ConsoleCommand(TEXT("quit")); }
+	else if (Id.GetPlainNameString() == TEXT("night"))
+	{
+		StartNight(Id.GetNumber());
+	}
+}
+
+void ALastWatchPlayerController::OnPause()
+{
+	if (Mode == EKeeperMode::Explore)
+	{
+		OpenPause();
+	}
+}
+
+void ALastWatchPlayerController::OnMenuConfirm()
+{
+	if (Mode != EKeeperMode::Menu)
+	{
+		return;
+	}
+
+	if (MenuPage == EMenuPage::Ending)
+	{
+		// let the ending be read before it can be skipped
+		if (GetWorld()->GetRealTimeSeconds() - EndingStart > 8.0f)
+		{
+			ReturnToTitle();
+		}
+		return;
+	}
+	ActivateMenuEntry(MenuSelection, 0);
+}
+
+void ALastWatchPlayerController::ApplyPlayerSettings()
+{
+	const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+	if (!Save)
+	{
+		return;
+	}
+	if (UCameraComponent* Camera = GetPawn() ? GetPawn()->FindComponentByClass<UCameraComponent>() : nullptr)
+	{
+		Camera->SetFieldOfView(Save->GetSettings()->FieldOfView);
+	}
+}
+
+void ALastWatchPlayerController::AddYawInput(float Val)
+{
+	const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+	Super::AddYawInput(Val * (Save ? Save->GetSettings()->MouseSensitivity : 1.0f));
+}
+
+void ALastWatchPlayerController::AddPitchInput(float Val)
+{
+	const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+	const ULastWatchSettingsSave* Settings = Save ? Save->GetSettings() : nullptr;
+	Super::AddPitchInput(Settings ? Val * Settings->MouseSensitivity * (Settings->bInvertY ? -1.0f : 1.0f) : Val);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -750,11 +1219,48 @@ void ALastWatchPlayerController::DebugLamp(bool bLit)
 
 void ALastWatchPlayerController::DebugShotAfter(float Seconds)
 {
-	FTimerHandle Handle;
-	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]
+	// core ticker rather than a world timer, so it also fires while a menu has the game paused
+	TWeakObjectPtr<ALastWatchPlayerController> WeakThis(this);
+	const double Due = FPlatformTime::Seconds() + FMath::Max(Seconds, 0.1f);
+	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([WeakThis, Due](float)
 	{
-		ConsoleCommand(TEXT("Shot showui"));
-	}), FMath::Max(Seconds, 0.1f), false);
+		if (FPlatformTime::Seconds() < Due)
+		{
+			return true;
+		}
+		if (WeakThis.IsValid())
+		{
+			WeakThis->ConsoleCommand(TEXT("Shot showui"));
+		}
+		return false;
+	}));
+}
+
+void ALastWatchPlayerController::DebugMenu(const FString& Page)
+{
+	if (Page == TEXT("title"))
+	{
+		OpenTitle();
+	}
+	else if (Page == TEXT("pause"))
+	{
+		ReturnToExplore();
+		OpenPause();
+		if (ALastWatchHUD* KeeperHUD = GetKeeperHUD())
+		{
+			// the night's fade-in would wait for the paused clock
+			KeeperHUD->SnapFade(0.0f);
+		}
+	}
+	else if (Page == TEXT("settings") || Page == TEXT("chapters"))
+	{
+		if (Mode != EKeeperMode::Menu)
+		{
+			OpenTitle();
+		}
+		SettingsParent = MenuPage;
+		SetMenuPage(Page == TEXT("settings") ? EMenuPage::Settings : EMenuPage::Chapters);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////

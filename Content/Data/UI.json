@@ -43,6 +43,39 @@
     "prompt.keep_light.hold": { "en": "[Hold E] Keep the light burning", "tr": "[E basılı tut] Işığı yanık tut" },
     "prompt.darken.hold": { "en": "[Hold E] Put out the light", "tr": "[E basılı tut] Işığı söndür" },
     "prompt.hatch_down":  { "en": "[E] Climb down",          "tr": "[E] Aşağı in" },
-    "prompt.hatch_up":    { "en": "[E] Climb up the ladder", "tr": "[E] Merdivenden yukarı çık" }
+    "prompt.hatch_up":    { "en": "[E] Climb up the ladder", "tr": "[E] Merdivenden yukarı çık" },
+
+    "game.title":         { "en": "THE LAST WATCH",          "tr": "THE LAST WATCH" },
+    "game.subtitle":      { "en": "Skerrow Rock  ·  October 1974", "tr": "Skerrow Rock  ·  Ekim 1974" },
+    "menu.continue":      { "en": "Continue",                "tr": "Devam et" },
+    "menu.new_game":      { "en": "New Game",                "tr": "Yeni Oyun" },
+    "menu.chapters":      { "en": "Nights",                  "tr": "Geceler" },
+    "menu.settings":      { "en": "Settings",                "tr": "Ayarlar" },
+    "menu.quit":          { "en": "Quit",                    "tr": "Çıkış" },
+    "menu.paused":        { "en": "Paused",                  "tr": "Duraklatıldı" },
+    "menu.resume":        { "en": "Resume",                  "tr": "Devam et" },
+    "menu.to_title":      { "en": "Return to Title",         "tr": "Ana Menüye Dön" },
+    "menu.back":          { "en": "Back",                    "tr": "Geri" },
+    "menu.night":         { "en": "Night {0}",               "tr": "{0}. Gece" },
+    "menu.locked":        { "en": "Not reached yet",         "tr": "Henüz ulaşılmadı" },
+    "menu.endings":       { "en": "Endings found: {0} / 2",  "tr": "Bulunan sonlar: {0} / 2" },
+    "menu.hint":          { "en": "[W / S] Select     [A / D] Change     [E] Confirm     [Esc] Back", "tr": "[W / S] Seç     [A / D] Değiştir     [E] Onayla     [Esc] Geri" },
+
+    "set.language":       { "en": "Language",                "tr": "Dil" },
+    "set.subtitles":      { "en": "Subtitle size",           "tr": "Altyazı boyutu" },
+    "set.objectives":     { "en": "Show objectives",         "tr": "Görevleri göster" },
+    "set.sensitivity":    { "en": "Mouse sensitivity",       "tr": "Fare hassasiyeti" },
+    "set.invert":         { "en": "Invert mouse Y",          "tr": "Fare Y eksenini ters çevir" },
+    "set.fov":            { "en": "Field of view",           "tr": "Görüş alanı" },
+    "set.volume":         { "en": "Volume",                  "tr": "Ses düzeyi" },
+    "lang.current":       { "en": "English",                 "tr": "Türkçe" },
+    "opt.on":             { "en": "On",                      "tr": "Açık" },
+    "opt.off":            { "en": "Off",                     "tr": "Kapalı" },
+    "opt.small":          { "en": "Small",                   "tr": "Küçük" },
+    "opt.normal":         { "en": "Normal",                  "tr": "Normal" },
+    "opt.large":          { "en": "Large",                   "tr": "Büyük" },
+
+    "hud.saved":          { "en": "Progress saved",          "tr": "İlerleme kaydedildi" },
+    "ending.continue":    { "en": "[E] Return to title",     "tr": "[E] Ana menüye dön" }
   }
 }

@@ -21,7 +21,31 @@ enum class EKeeperMode : uint8
 	Explore,
 	Reading,
 	Radio,
-	Inventory
+	Inventory,
+	Menu
+};
+
+/** Which screen is up while in Menu mode */
+enum class EMenuPage : uint8
+{
+	Title,
+	Pause,
+	Settings,
+	Chapters,
+
+	/** The ending text is on screen; any confirm returns to the title */
+	Ending
+};
+
+/** One line of a menu, built by the controller and drawn by the HUD */
+struct FMenuEntry
+{
+	FName Id;
+	FText Label;
+
+	/** Current value for settings, empty for plain buttons */
+	FText Value;
+	bool bEnabled = true;
 };
 
 /**
@@ -65,6 +89,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Movement")
 	float WalkableSlope = 50.0f;
 
+	/** Distance and height of the title screen camera circling the lighthouse lamp */
+	UPROPERTY(EditAnywhere, Category="Menu", meta=(Units="cm"))
+	float TitleOrbitRadius = 7000.0f;
+
+	UPROPERTY(EditAnywhere, Category="Menu", meta=(Units="cm"))
+	float TitleOrbitHeight = -1300.0f;
+
+	/** Degrees per second */
+	UPROPERTY(EditAnywhere, Category="Menu")
+	float TitleOrbitSpeed = 2.0f;
+
 	/** Falling below this height (into the sea) puts the keeper back at the player start */
 	UPROPERTY(EditAnywhere, Category="Interaction", meta=(Units="cm"))
 	float RespawnBelowZ = -150.0f;
@@ -85,6 +120,42 @@ public:
 
 	/** Returns to exploring from any overlay */
 	void ReturnToExplore();
+
+	// menus
+
+	/** Title screen over a slow shot of the island */
+	void OpenTitle();
+
+	/** Pauses the game and opens the pause menu */
+	void OpenPause();
+
+	/** Leaves any menu and goes back to the keeper */
+	void CloseMenu();
+
+	/** The story has ended; confirming now returns to the title */
+	void EnterEnding();
+
+	/** Reloads the level, which opens on the title screen */
+	void ReturnToTitle();
+
+	/** Lines of the open menu page */
+	TArray<FMenuEntry> GetMenuEntries() const;
+
+	/** Runs a menu line: Direction 0 = confirm, -1 / +1 = change a setting */
+	void ActivateMenuEntry(int32 Index, int32 Direction);
+
+	void SetMenuSelection(int32 Index) { MenuSelection = Index; }
+	int32 GetMenuSelection() const { return MenuSelection; }
+	EMenuPage GetMenuPage() const { return MenuPage; }
+	float GetEndingStart() const { return EndingStart; }
+	bool IsInMenu(EMenuPage Page) const { return Mode == EKeeperMode::Menu && MenuPage == Page; }
+
+	/** Puts the field of view setting on the keeper's camera */
+	void ApplyPlayerSettings();
+
+	// mouse look honours the sensitivity and invert settings
+	virtual void AddYawInput(float Val) override;
+	virtual void AddPitchInput(float Val) override;
 
 	void ShowToast(const FText& Text);
 	void SetSubtitle(const FText& Speaker, const FText& Line);
@@ -143,6 +214,10 @@ public:
 	UFUNCTION(Exec)
 	void DebugShotAfter(float Seconds);
 
+	/** Opens a menu page without input: title, pause, settings, chapters */
+	UFUNCTION(Exec)
+	void DebugMenu(const FString& Page);
+
 	// state read by the HUD
 	EKeeperMode GetMode() const { return Mode; }
 	AInteractableActor* GetFocused() const { return Focused.Get(); }
@@ -180,6 +255,12 @@ protected:
 	void OnListDown();
 	void OnTune(const FInputActionValue& Value);
 	void OnTuneWheel(const FInputActionValue& Value);
+	void OnPause();
+	void OnMenuConfirm();
+
+	void SetMenuPage(EMenuPage Page);
+	void ShowCursor(bool bShow);
+	void UpdateTitleCamera(float DeltaTime);
 
 private:
 
@@ -198,6 +279,8 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UInputAction> ListDownAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> TuneAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> TuneWheelAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> PauseAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> MenuConfirmAction;
 
 	/** Always active: interact, inventory */
 	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> ExploreContext;
@@ -207,6 +290,12 @@ private:
 
 	/** Radio: tuning, back. Blocks movement keys. */
 	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> RadioContext;
+
+	/** Menus: list navigation, value changes, confirm, back. Blocks movement keys. */
+	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> MenuContext;
+
+	/** Camera circling the lighthouse behind the title screen */
+	UPROPERTY(Transient) TObjectPtr<class ACameraActor> TitleCamera;
 
 	EKeeperMode Mode = EKeeperMode::Explore;
 	bool bMovementBlocked = false;
@@ -225,4 +314,12 @@ private:
 	/** True when the reader was opened from the inventory, so closing goes back there */
 	bool bReadingFromInventory = false;
 	int32 InventorySelection = 0;
+
+	EMenuPage MenuPage = EMenuPage::Title;
+
+	/** Page Settings goes back to (title or pause) */
+	EMenuPage SettingsParent = EMenuPage::Title;
+	int32 MenuSelection = 0;
+	float TitleOrbitAngle = 0.0f;
+	float EndingStart = 0.0f;
 };

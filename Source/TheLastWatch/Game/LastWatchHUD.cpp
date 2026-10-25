@@ -4,6 +4,8 @@
 #include "Engine/GameViewportClient.h"
 #include "Engine/World.h"
 #include "Styling/CoreStyle.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SBorder.h"
@@ -12,6 +14,7 @@
 #include "GameDataSubsystem.h"
 #include "Interactables.h"
 #include "InventoryComponent.h"
+#include "KeeperSaveSubsystem.h"
 #include "LastWatchPlayerController.h"
 #include "StorySubsystem.h"
 
@@ -82,6 +85,29 @@ void ALastWatchHUD::FadeTo(float TargetOpacity, float Seconds)
 	FadeSpeed = Seconds > 0.0f ? 1.0f / Seconds : 1000.0f;
 }
 
+void ALastWatchHUD::SnapFade(float Opacity)
+{
+	FadeOpacity = FadeTarget = FMath::Clamp(Opacity, 0.0f, 1.0f);
+}
+
+void ALastWatchHUD::ShowSaveIndicator()
+{
+	SaveIndicatorTime = GetWorld()->GetRealTimeSeconds();
+}
+
+float ALastWatchHUD::GetSubtitleScale() const
+{
+	const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+	const int32 Size = Save ? Save->GetSettings()->SubtitleSize : 1;
+	return Size == 0 ? 0.8f : Size == 2 ? 1.3f : 1.0f;
+}
+
+bool ALastWatchHUD::ShouldShowObjective() const
+{
+	const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+	return !Save || Save->GetSettings()->bShowObjectives;
+}
+
 void ALastWatchHUD::ShowEnding(const FText& Text)
 {
 	EndingText = Text;
@@ -93,6 +119,17 @@ void ALastWatchHUD::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	FadeOpacity = FMath::FInterpConstantTo(FadeOpacity, FadeTarget, DeltaSeconds, FadeSpeed);
+
+	// remember when a new objective appears, to highlight it for a moment
+	if (const UStorySubsystem* Story = UStorySubsystem::Get(this))
+	{
+		const FString Objective = FString::Printf(TEXT("%d:%s"), Story->GetNight(), *Story->GetObjectiveId());
+		if (Objective != LastObjective)
+		{
+			LastObjective = Objective;
+			ObjectiveChangedTime = GetWorld()->GetRealTimeSeconds();
+		}
+	}
 }
 
 float ALastWatchHUD::GetTitleOpacity() const
@@ -121,7 +158,7 @@ TSharedRef<SWidget> ALastWatchHUD::BuildStoryOverlay()
 			{
 				const UStorySubsystem* Story = UStorySubsystem::Get(this);
 				const ALastWatchPlayerController* K = GetKeeper();
-				const bool bShow = Story && !Story->GetObjectiveText().IsEmpty() && K && K->GetMode() == EKeeperMode::Explore && !bEnding;
+				const bool bShow = Story && !Story->GetObjectiveText().IsEmpty() && K && K->GetMode() == EKeeperMode::Explore && !bEnding && ShouldShowObjective();
 				return bShow ? EVisibility::HitTestInvisible : EVisibility::Collapsed;
 			})
 			[
@@ -143,7 +180,12 @@ TSharedRef<SWidget> ALastWatchHUD::BuildStoryOverlay()
 				[
 					SNew(STextBlock)
 					.Font(HUDStyle::Font(16))
-					.ColorAndOpacity(FSlateColor(HUDStyle::Soft))
+					.ColorAndOpacity_Lambda([this]
+					{
+						// a new objective glows amber, then settles
+						const float Age = GetWorld()->GetRealTimeSeconds() - ObjectiveChangedTime;
+						return FSlateColor(FMath::Lerp(HUDStyle::Amber, HUDStyle::Soft, FMath::Clamp((Age - 1.5f) / 2.0f, 0.0f, 1.0f)));
+					})
 					.ShadowOffset(FVector2D(1, 1))
 					.Justification(ETextJustify::Right)
 					.WrapTextAt(420.0f)
@@ -206,11 +248,232 @@ TSharedRef<SWidget> ALastWatchHUD::BuildStoryOverlay()
 			SNew(STextBlock)
 			.Font(HUDStyle::Font(20))
 			.Justification(ETextJustify::Center)
-			.WrapTextAt(900.0f)
+			.WrapTextAt(1150.0f)
 			.LineHeightPercentage(1.35f)
 			.ColorAndOpacity_Lambda([this] { return FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(FMath::Clamp(FadeOpacity * 1.2f - 0.2f, 0.0f, 1.0f))); })
 			.Text_Lambda([this] { return EndingText; })
 			.Visibility_Lambda([this] { return bEnding ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+		]
+
+		// once the ending has been read, offer the way back
+		+ SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Bottom).Padding(0, 0, 0, 60)
+		[
+			SNew(STextBlock)
+			.Font(HUDStyle::Font(14))
+			.Text_Lambda([this] { return UIText(TEXT("ending.continue")); })
+			.ColorAndOpacity_Lambda([this, Keeper]
+			{
+				const ALastWatchPlayerController* K = Keeper();
+				const float Age = K ? GetWorld()->GetRealTimeSeconds() - K->GetEndingStart() : 0.0f;
+				return FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(0.7f * FMath::Clamp(Age - 8.0f, 0.0f, 1.0f)));
+			})
+			.Visibility_Lambda([Keeper] { return Keeper() && Keeper()->IsInMenu(EMenuPage::Ending) ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+		]
+
+		// autosave note, bottom right
+		+ SOverlay::Slot().HAlign(HAlign_Right).VAlign(VAlign_Bottom).Padding(0, 0, 48, 40)
+		[
+			SNew(STextBlock)
+			.Font(HUDStyle::Font(13, "Bold"))
+			.Text_Lambda([this] { return UIText(TEXT("hud.saved")); })
+			.ColorAndOpacity_Lambda([this]
+			{
+				// in, hold, out over four seconds
+				const float Age = GetWorld()->GetRealTimeSeconds() - SaveIndicatorTime;
+				const float Alpha = FMath::Clamp(FMath::Min(Age, 4.0f - Age), 0.0f, 1.0f);
+				return FSlateColor(HUDStyle::Amber.CopyWithNewOpacity(0.75f * Alpha));
+			})
+		];
+}
+
+TSharedRef<SWidget> ALastWatchHUD::BuildMenu()
+{
+	auto Keeper = [this] { return GetKeeper(); };
+	auto Page = [this]
+	{
+		const ALastWatchPlayerController* K = GetKeeper();
+		return K ? K->GetMenuPage() : EMenuPage::Ending;
+	};
+
+	static const FButtonStyle PlainButton = FButtonStyle()
+		.SetNormal(FSlateNoResource())
+		.SetHovered(FSlateNoResource())
+		.SetPressed(FSlateNoResource())
+		.SetNormalPadding(FMargin(0))
+		.SetPressedPadding(FMargin(0));
+
+	// fixed rows; each shows entry Index of the open page, or collapses
+	TSharedRef<SVerticalBox> Rows = SNew(SVerticalBox);
+	for (int32 Index = 0; Index < 9; ++Index)
+	{
+		auto Entry = [this, Index]
+		{
+			const ALastWatchPlayerController* K = GetKeeper();
+			const TArray<FMenuEntry> Entries = K ? K->GetMenuEntries() : TArray<FMenuEntry>();
+			return Entries.IsValidIndex(Index) ? Entries[Index] : FMenuEntry();
+		};
+		auto Selected = [this, Index]
+		{
+			const ALastWatchPlayerController* K = GetKeeper();
+			return K && K->GetMenuSelection() == Index;
+		};
+		auto RowColor = [Entry, Selected]
+		{
+			const FMenuEntry Current = Entry();
+			return FSlateColor(!Current.bEnabled ? HUDStyle::Soft.CopyWithNewOpacity(0.3f) : Selected() ? HUDStyle::Amber : HUDStyle::Soft);
+		};
+
+		Rows->AddSlot().AutoHeight().Padding(0, 5)
+		[
+			SNew(SButton)
+			.ButtonStyle(&PlainButton)
+			.IsFocusable(false)
+			.Visibility_Lambda([Entry] { return Entry().Id.IsNone() ? EVisibility::Collapsed : EVisibility::Visible; })
+			.OnHovered_Lambda([Keeper, Index] { if (Keeper()) { Keeper()->SetMenuSelection(Index); } })
+			.OnClicked_Lambda([Keeper, Index]
+			{
+				if (Keeper())
+				{
+					Keeper()->ActivateMenuEntry(Index, 0);
+				}
+				return FReply::Handled();
+			})
+			[
+				SNew(SHorizontalBox)
+
+				// selection mark
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 14, 0)
+				[
+					SNew(SBox)
+					.WidthOverride(22.0f)
+					.HeightOverride(2.0f)
+					[
+						SNew(SBorder)
+						.BorderImage(WhiteBrush.Get())
+						.BorderBackgroundColor_Lambda([Selected] { return FSlateColor(HUDStyle::Amber.CopyWithNewOpacity(Selected() ? 1.0f : 0.0f)); })
+					]
+				]
+
+				+ SHorizontalBox::Slot().FillWidth(1.0f).VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(21))
+					.ShadowOffset(FVector2D(1, 1))
+					.ColorAndOpacity_Lambda(RowColor)
+					.Text_Lambda([Entry] { return Entry().Label; })
+				]
+
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(24, 0, 0, 0)
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(18))
+					.ShadowOffset(FVector2D(1, 1))
+					.ColorAndOpacity_Lambda(RowColor)
+					.Text_Lambda([Entry, Selected]
+					{
+						// settings show arrows on the selected line
+						const FMenuEntry Current = Entry();
+						const bool bSetting = !Current.Value.IsEmpty() && Current.bEnabled && Current.Id.GetPlainNameString() != TEXT("night") && Current.Id != TEXT("continue");
+						return bSetting && Selected() ? FText::Format(INVTEXT("<  {0}  >"), Current.Value) : Current.Value;
+					})
+				]
+			]
+		];
+	}
+
+	auto HeadingKey = [Page]() -> const TCHAR*
+	{
+		switch (Page())
+		{
+		case EMenuPage::Title:    return TEXT("game.title");
+		case EMenuPage::Pause:    return TEXT("menu.paused");
+		case EMenuPage::Settings: return TEXT("menu.settings");
+		case EMenuPage::Chapters: return TEXT("menu.chapters");
+		default:                  return TEXT("");
+		}
+	};
+
+	return SNew(SOverlay)
+		.Visibility_Lambda([Keeper, Page]
+		{
+			return Keeper() && Keeper()->GetMode() == EKeeperMode::Menu && Page() != EMenuPage::Ending ? EVisibility::Visible : EVisibility::Collapsed;
+		})
+
+		// darken the game behind: a band on the left over the title shot, all of it when paused
+		+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill)
+		[
+			SNew(SBorder)
+			.BorderImage(WhiteBrush.Get())
+			.BorderBackgroundColor_Lambda([this] { return FSlateColor(FLinearColor(0, 0, 0, GetWorld()->IsPaused() ? 0.7f : 0.0f)); })
+		]
+		+ SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Fill)
+		[
+			SNew(SBox)
+			.WidthOverride(760.0f)
+			.Visibility_Lambda([this] { return GetWorld()->IsPaused() ? EVisibility::Collapsed : EVisibility::HitTestInvisible; })
+			[
+				SNew(SBorder)
+				.BorderImage(WhiteBrush.Get())
+				.BorderBackgroundColor(FLinearColor(0.0f, 0.01f, 0.02f, 0.62f))
+			]
+		]
+
+		+ SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(110, 0, 0, 0)
+		[
+			SNew(SBox)
+			.MinDesiredWidth(560.0f)
+			[
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot().AutoHeight()
+				[
+					SNew(STextBlock)
+					.Font_Lambda([Page] { return HUDStyle::Font(Page() == EMenuPage::Title ? 50 : 34, "Bold"); })
+					.ColorAndOpacity(FSlateColor(HUDStyle::Soft))
+					.ShadowOffset(FVector2D(2, 2))
+					.Text_Lambda([this, HeadingKey] { return UIText(HeadingKey()); })
+				]
+
+				+ SVerticalBox::Slot().AutoHeight().Padding(4, 6, 0, 0)
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(16))
+					.ColorAndOpacity(FSlateColor(HUDStyle::Amber.CopyWithNewOpacity(0.85f)))
+					.Text_Lambda([this] { return UIText(TEXT("game.subtitle")); })
+					.Visibility_Lambda([Page] { return Page() == EMenuPage::Title ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+				]
+
+				+ SVerticalBox::Slot().AutoHeight().Padding(0, 52, 0, 0)
+				[
+					Rows
+				]
+
+				+ SVerticalBox::Slot().AutoHeight().Padding(4, 40, 0, 0)
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(14))
+					.ColorAndOpacity(FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(0.55f)))
+					.Text_Lambda([this]
+					{
+						const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+						const UGameDataSubsystem* Data = UGameDataSubsystem::Get(this);
+						return Save && Data ? Data->GetUIText(TEXT("menu.endings"), FText::AsNumber(Save->GetEndingCount())) : FText::GetEmpty();
+					})
+					.Visibility_Lambda([this, Page]
+					{
+						const UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this);
+						return Page() == EMenuPage::Title && Save && Save->GetEndingCount() > 0 ? EVisibility::HitTestInvisible : EVisibility::Collapsed;
+					})
+				]
+			]
+		]
+
+		+ SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Bottom).Padding(114, 0, 0, 48)
+		[
+			SNew(STextBlock)
+			.Font(HUDStyle::Font(13))
+			.ColorAndOpacity(FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(0.6f)))
+			.Text_Lambda([this] { return UIText(TEXT("menu.hint")); })
 		];
 }
 
@@ -268,6 +531,11 @@ void ALastWatchHUD::BeginPlay()
 		+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill)
 		[
 			BuildInventory()
+		]
+
+		+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill)
+		[
+			BuildMenu()
 		]
 
 		// objective, fades, title cards and the ending sit above everything else
@@ -355,12 +623,18 @@ TSharedRef<SWidget> ALastWatchHUD::BuildSubtitles()
 		.MaxDesiredWidth(1100.0f)
 		.Visibility_Lambda([Line] { return Line().IsEmpty() ? EVisibility::Collapsed : EVisibility::HitTestInvisible; })
 		[
+			// soft dark backing keeps lines readable against the lamp and the fog
+			SNew(SBorder)
+			.BorderImage(WhiteBrush.Get())
+			.BorderBackgroundColor(FLinearColor(0, 0, 0, 0.45f))
+			.Padding(FMargin(22, 10))
+			[
 			SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
-				.Font(HUDStyle::Font(14, "Bold"))
+				.Font_Lambda([this] { return HUDStyle::Font(FMath::RoundToInt(14 * GetSubtitleScale()), "Bold"); })
 				.ColorAndOpacity(FSlateColor(HUDStyle::Amber))
 				.ShadowOffset(FVector2D(1, 1))
 				.Text_Lambda([Speaker] { return Speaker(); })
@@ -370,12 +644,13 @@ TSharedRef<SWidget> ALastWatchHUD::BuildSubtitles()
 			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0, 4, 0, 0)
 			[
 				SNew(STextBlock)
-				.Font(HUDStyle::Font(22))
+				.Font_Lambda([this] { return HUDStyle::Font(FMath::RoundToInt(22 * GetSubtitleScale())); })
 				.Justification(ETextJustify::Center)
 				.WrapTextAt(1100.0f)
 				.ShadowOffset(FVector2D(2, 2))
 				.ShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f))
 				.Text_Lambda([Line] { return Line(); })
+			]
 			]
 		];
 }

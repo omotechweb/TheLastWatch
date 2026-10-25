@@ -45,8 +45,14 @@ public:
 	/** Fades the screen to black (1) or back (0) */
 	void FadeTo(float TargetOpacity, float Seconds);
 
+	/** Jumps the fade straight to Opacity (0 clear, 1 black) */
+	void SnapFade(float Opacity);
+
 	/** End of the game: black screen with the ending text and credits */
 	void ShowEnding(const FText& Text);
+
+	/** Small "saved" note in the corner */
+	void ShowSaveIndicator();
 
 	virtual void Tick(float DeltaSeconds) override;
 
@@ -64,6 +70,7 @@ private:
 	TSharedRef<SWidget> BuildReader();
 	TSharedRef<SWidget> BuildRadio();
 	TSharedRef<SWidget> BuildInventory();
+	TSharedRef<SWidget> BuildMenu();
 
 	FText GetReaderTitle() const;
 	FText GetReaderBody() const;
@@ -73,6 +80,10 @@ private:
 	FText GetInventoryItems() const;
 	FText GetInventoryNotes() const;
 	FText UIText(const TCHAR* Key) const;
+
+	/** Subtitle size setting as a font scale */
+	float GetSubtitleScale() const;
+	bool ShouldShowObjective() const;
 
 	TSharedPtr<SWidget> Root;
 
@@ -93,12 +104,19 @@ private:
 	float TitleStart = -100.0f;
 	float TitleDuration = 0.0f;
 
-	float FadeOpacity = 0.0f;
-	float FadeTarget = 0.0f;
+	// starts black; the title screen or the first night fades in
+	float FadeOpacity = 1.0f;
+	float FadeTarget = 1.0f;
 	float FadeSpeed = 1.0f;
 
 	FText EndingText;
 	bool bEnding = false;
+
+	float SaveIndicatorTime = -100.0f;
+
+	/** When the objective last changed, for the highlight on a new one */
+	FString LastObjective;
+	float ObjectiveChangedTime = -100.0f;
 
 	TSharedRef<SWidget> BuildStoryOverlay();
 	float GetTitleOpacity() const;

@@ -21,9 +21,13 @@ class THELASTWATCH_API UInventoryComponent : public UActorComponent
 	UPROPERTY(VisibleAnywhere, Category="Inventory")
 	TArray<FName> Notes;
 
+	/** Every item ever received, including ones since used up */
+	UPROPERTY(VisibleAnywhere, Category="Inventory")
+	TArray<FName> Taken;
+
 public:
 
-	void AddItem(FName ItemId) { Items.AddUnique(ItemId); }
+	void AddItem(FName ItemId) { Items.AddUnique(ItemId); Taken.AddUnique(ItemId); }
 	bool RemoveItem(FName ItemId) { return Items.Remove(ItemId) > 0; }
 	bool HasItem(FName ItemId) const { return Items.Contains(ItemId); }
 
@@ -32,4 +36,13 @@ public:
 
 	const TArray<FName>& GetItems() const { return Items; }
 	const TArray<FName>& GetNotes() const { return Notes; }
+	const TArray<FName>& GetTaken() const { return Taken; }
+
+	/** Replaces everything, e.g. when loading a saved night */
+	void SetContents(const TArray<FName>& InItems, const TArray<FName>& InNotes, const TArray<FName>& InTaken)
+	{
+		Items = InItems;
+		Notes = InNotes;
+		Taken = InTaken;
+	}
 };

@@ -65,6 +65,13 @@ void AInteractableActor::BeginPlay()
 	}
 }
 
+void AInteractableActor::MarkCollected()
+{
+	bCollected = true;
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // ANotePickup
 

@@ -3,12 +3,15 @@
 # Usage: powershell -File Scripts/test_input.ps1 -Commands "DebugTeleport ..." -Keys "WAIT:6;SPACE;WAIT:1.5"
 #   Keys: WAIT:<seconds>, SPACE, CTRLDOWN, CTRLUP, or any SendKeys string (e.g. "e", "{TAB}").
 #   CTRLDOWN/CTRLUP hold and release Left Ctrl with keybd_event (SendKeys cannot hold keys).
-param([string]$Commands = "", [string]$Keys = "WAIT:8;SPACE;WAIT:2", [string]$Pattern = "Pawn x=|Jump pressed|Crouch")
+#   -Title starts on the title screen instead of night 1 (keys: S, A, D, P, ESC, ENTER also work).
+#   SHOT:<file.png> grabs the game window from the screen.
+param([string]$Commands = "", [string]$Keys = "WAIT:8;SPACE;WAIT:2", [string]$Pattern = "Pawn x=|Jump pressed|Crouch", [switch]$Title)
 $Engine  = "C:\Program Files\Epic Games\UE_5.7"
 $Project = Join-Path $PSScriptRoot "..\TheLastWatch.uproject" | Resolve-Path
 $Log = Join-Path $PSScriptRoot "..\Saved\Logs\TheLastWatch.log"
 
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
@@ -17,6 +20,8 @@ public static class KeyInput {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint code, uint type);
+    [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
     public static void Down(byte vk) { keybd_event(vk, 0, 0, UIntPtr.Zero); }
     public static void Up(byte vk) { keybd_event(vk, 0, 2, UIntPtr.Zero); }
     // window messages reach the game even when Windows refuses to bring it to the front
@@ -33,8 +38,10 @@ public static class KeyInput {
 
 $Exec = "tlw.LogPawn 1, DisableAllScreenMessages"
 if ($Commands) { $Exec = "$Commands, $Exec" }
-$p = Start-Process "$Engine\Engine\Binaries\Win64\UnrealEditor.exe" -PassThru -ArgumentList @(
-    "`"$Project`"", "-game", "-windowed", "-ResX=1280", "-ResY=720", "-nosplash", "-log", "-ExecCmds=`"$Exec`"")
+$GameArgs = @("`"$Project`"", "-game", "-windowed", "-ResX=1280", "-ResY=720", "-nosplash", "-log")
+if (-not $Title) { $GameArgs += "-NoMenu" }
+$GameArgs += "-ExecCmds=`"$Exec`""
+$p = Start-Process "$Engine\Engine\Binaries\Win64\UnrealEditor.exe" -PassThru -ArgumentList $GameArgs
 
 # start load times vary a lot (shader compiles, DDC); wait until the keeper is actually ticking
 $ready = $false
@@ -47,12 +54,20 @@ Start-Sleep 4  # let the keeper land
 
 foreach ($key in $Keys.Split(";")) {
     if ($key -like "WAIT:*") { Start-Sleep -Milliseconds ([double]::Parse($key.Substring(5), [Globalization.CultureInfo]::InvariantCulture) * 1000); continue }
+    if ($key -like "SHOT:*") {
+        # screen grab of the game window (works for menus, which pause the game's own timers)
+        $p.Refresh(); [KeyInput]::SetForegroundWindow($p.MainWindowHandle) | Out-Null; Start-Sleep -Milliseconds 300
+        $r = New-Object KeyInput+RECT; [KeyInput]::GetWindowRect($p.MainWindowHandle, [ref]$r) | Out-Null
+        $bmp = New-Object System.Drawing.Bitmap ($r.Right - $r.Left), ($r.Bottom - $r.Top)
+        [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($r.Left, $r.Top, 0, 0, $bmp.Size)
+        $bmp.Save((Join-Path (Get-Location) $key.Substring(5))); "shot $($key.Substring(5))"; continue
+    }
     $p.Refresh()
     [KeyInput]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
     Start-Sleep -Milliseconds 150
     $h = $p.MainWindowHandle
     # VK codes: SPACE 0x20, CTRL 0x11, TAB 0x09, E 0x45, W 0x57, C 0x43
-    $vk = @{ "SPACE" = 0x20; "TAB" = 0x09; "E" = 0x45; "C" = 0x43 }
+    $vk = @{ "SPACE" = 0x20; "TAB" = 0x09; "E" = 0x45; "C" = 0x43; "S" = 0x53; "A" = 0x41; "D" = 0x44; "P" = 0x50; "ESC" = 0x1B; "ENTER" = 0x0D }
     if ($key -match "^(\w+)DOWN$" -and $vk.ContainsKey($Matches[1]) -or $key -eq "CTRLDOWN" -or $key -eq "WDOWN") {
         $code = if ($key -eq "CTRLDOWN") { 0x11 } elseif ($key -eq "WDOWN") { 0x57 } else { $vk[$Matches[1]] }
         [KeyInput]::PostDown($h, $code)

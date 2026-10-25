@@ -51,6 +51,9 @@ public:
 	/** Picked up for good; the story leaves it hidden on later nights */
 	bool IsCollected() const { return bCollected; }
 
+	/** Takes it off the island, e.g. when a saved night says it was already picked up */
+	void MarkCollected();
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -74,6 +77,8 @@ public:
 
 	ANotePickup();
 
+	FName GetNoteId() const { return NoteId; }
+
 	virtual FText GetPrompt(const ALastWatchPlayerController* Keeper) const override;
 	virtual void Interact(ALastWatchPlayerController* Keeper) override;
 };
@@ -93,6 +98,8 @@ protected:
 public:
 
 	AItemPickup();
+
+	FName GetItemId() const { return ItemId; }
 
 	virtual FText GetPrompt(const ALastWatchPlayerController* Keeper) const override;
 	virtual void Interact(ALastWatchPlayerController* Keeper) override;

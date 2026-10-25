@@ -25,8 +25,8 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 - Oyunu editörsüz çalıştır: `powershell -File Scripts/play.ps1` (isteğe bağlı `-Map /Game/...`)
 - Editör: `C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\Win64\UnrealEditor.exe`
 - Editör Python betiği çalıştır (editör kapalıyken): `powershell -File Scripts/run_python.ps1 Scripts/Editor/<betik>.py` — dosya/doku içe aktaran betikler `-Editor` ister (komut satırı modunda içe aktarma çöker).
-- Ekran görüntüsü al (HUD dahil): `powershell -File Scripts/screenshot.ps1 -Commands "DebugOpenNote elias_01" -Out Saved\Screenshots\x.png` — sonucu Read ile incele. Görsel değişiklikleri böyle doğrula.
-- Gerçek tuş testi: `powershell -File Scripts/test_input.ps1 -Commands "DebugTeleport ..." -Keys "SPACE;WAIT:2;WDOWN;WAIT:10;WUP"` — oyunu açar, oyuncu hazır olunca pencereye tuş mesajı gönderir (SPACE, E, TAB, C, WDOWN/WUP, CTRLDOWN/CTRLUP, WAIT:s). `tlw.LogPawn 1` her kareyi (`Pawn x= y= z= ... crouched=`), basılan tuşları ve **ilerleyemeyince önündeki engeli** (`Blocked by ... (mesh ...)`) log'a yazar. Hareketle ilgili her düzeltmeyi bununla doğrula; ekran görüntüsü yetmez.
+- Ekran görüntüsü al (HUD dahil): `powershell -File Scripts/screenshot.ps1 -Commands "DebugOpenNote elias_01" -Out Saved\Screenshots\x.png` — sonucu Read ile incele. Görsel değişiklikleri böyle doğrula. Betik oyunu `-NoMenu` ile açar (ana menü atlanır, doğrudan 1. gece; kayıt dosyasına yazılmaz). Menüyü görmek için `-Title`, belirli bir sayfa için `-Title -Commands "DebugMenu settings"` (title/pause/settings/chapters; duraklatma için `"DebugSetNight 1, DebugMenu pause"`). `-Title` ile hikâye başlatılırsa gerçek kayda yazılır; testten sonra `Saved/SaveGames/Progress.sav`'ı sil.
+- Gerçek tuş testi: `powershell -File Scripts/test_input.ps1 -Commands "DebugTeleport ..." -Keys "SPACE;WAIT:2;WDOWN;WAIT:10;WUP"` — oyunu açar, oyuncu hazır olunca pencereye tuş mesajı gönderir (SPACE, E, TAB, C, WDOWN/WUP, CTRLDOWN/CTRLUP, WAIT:s). `-Title` ana menüden başlatır; `SHOT:dosya.png` pencerenin ekran görüntüsünü alır. Not: betik oyun penceresini öne getirir, geliştirici o sırada bilgisayarı kullanıyorsa onun tuşları/fare tıklamaları da oyuna gider (log'da `Key pressed`); menü görsellerini mümkünse screenshot.ps1 ile doğrula. `tlw.LogPawn 1` her kareyi (`Pawn x= y= z= ... crouched=`), basılan tuşları ve **ilerleyemeyince önündeki engeli** (`Blocked by ... (mesh ...)`) log'a yazar. Hareketle ilgili her düzeltmeyi bununla doğrula; ekran görüntüsü yetmez.
 - Loglar: `Saved/Logs/TheLastWatch.log`
 
 ## Hareket
@@ -35,12 +35,14 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 
 ## Geliştirici konsol komutları (oyunda ` tuşu)
 
-`DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `DebugTeleport X Y Z Yaw Pitch` (uçma moduna geçer; kamera açısı için; bir şeyin içine denk gelirse sessizce başarısız olur ve oyuncu başlangıçta kalır), `DebugLamp 0|1`, `DebugDumpLights <cm>`, `DebugShotAfter <s>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
+`DebugMenu <sayfa>`, `DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `DebugTeleport X Y Z Yaw Pitch` (uçma moduna geçer; kamera açısı için; bir şeyin içine denk gelirse sessizce başarısız olur ve oyuncu başlangıçta kalır), `DebugLamp 0|1`, `DebugDumpLights <cm>`, `DebugShotAfter <s>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
 
 Ekran görüntüsünde `viewmode unlit` / `viewmode lit_detaillighting` komutları renk mi ışık mı sorunu olduğunu ayırmak için işe yarar.
 
 ## Oyun sistemleri (`Source/TheLastWatch/Game/`)
 
+- `KeeperSaveSubsystem` — kayıt (`Saved/SaveGames/Progress.sav`: her gecenin başındaki envanter, görülen sonlar) ve ayarlar (`Settings.sav`: dil, altyazı boyutu, görev göster, fare hassasiyeti/ters Y, FOV, ses). Her gece başında otomatik kayıt; `-NoMenu` ile salt okunur.
+- Menüler: `EKeeperMode::Menu` + `EMenuPage` (Title/Pause/Settings/Chapters/Ending). Satırları `LastWatchPlayerController::GetMenuEntries` üretir, HUD (`BuildMenu`) çizer; metinler `UI.json` (`menu.*`, `set.*`, `opt.*`). Oyun ana menüyle açılır (kamera fenerin etrafında döner), Esc/P duraklatır. Son ekranından E ya da 75 sn sonra seviye yeniden yüklenip ana menüye dönülür (`to_title` eylemi).
 - `GameDataSubsystem` — `Content/Data/*.json` okur (Notes, Items, Radio, UI). Metinler `{ "en": ..., "tr": ... }`.
 - `Interactables` — `AInteractableActor` tabanı + `ANotePickup`, `AItemPickup`, `AKeeperDoor`, `ARadioSet`. Geçici görünüm: tintlenmiş motor küpü.
 - `LastWatchPlayerController` — odak (line trace), E etkileşimi, modlar (Explore/Reading/Radio/Inventory), girdiler kodda oluşturulur.
@@ -71,7 +73,7 @@ Sığınak: `Scripts/Editor/build_bunker.py` (haritadan önce) — VESPER istasy
 ## Hikaye (5 gece)
 
 - Senaryo tamamen `Content/Data/Nights.json`: her gece `on_start` eylemleri + sıralı `objectives` (`complete_on` olayı) + `events` (o gece her zaman tepki; son gecedeki seçim). Belgeler `Notes.json`, telsiz `Radio.json` (`nights` alanı), eşyalar `Items.json`, istemler `UI.json`.
-- `UStorySubsystem` (`Game/StorySubsystem.*`) geceyi başlatır, olayları dinler: `read:<not>`, `take:<eşya>`, `task:<id>`, `enter:<alan>`, `radio:<yayın>`, `use:<kapı>`, `delay:<sn>`. Eylemler: subtitle, title, toast, fade_out/in, show/hide (etiket), lamp_on/off, give/remove, sound, teleport (etiket), storm, fog, ambience (`etiket=ses`), notify, next_night, ending, quit.
+- `UStorySubsystem` (`Game/StorySubsystem.*`) geceyi başlatır, olayları dinler: `read:<not>`, `take:<eşya>`, `task:<id>`, `enter:<alan>`, `radio:<yayın>`, `use:<kapı>`, `delay:<sn>`. Eylemler: subtitle, title, toast, fade_out/in, show/hide (etiket), lamp_on/off, give/remove, sound, teleport (etiket), storm, fog, ambience (`etiket=ses`), notify, next_night, ending, to_title (ana menüye dön), quit. `ending` eyleminin `arg`'ı (`light`/`dark`) kayda "görülen son" olarak yazılır.
 - Haritadaki karşılıkları `build_skerrow_map.py` sonundaki "story" bölümünde: `AStoryTask` (görünmez kutu, basılı tutma, gerekli eşya; yalnızca hikaye onu beklerken kullanılabilir), `AStoryVolume`, `ATeleportDoor`, `ATargetPoint` etiketleri, `AStormController`. Aktör etiketi `night:3-5` → sadece o gecelerde görünür.
 - Yeni gece adımı eklemek: JSON'a objective yaz → gerekiyorsa haritaya task/volume ekle (id'ler aynı) → `DebugAutoplay 5` ile tüm akışı log'dan doğrula (`Story:` satırları) → kritik etkileşimi `test_input.ps1` ile gerçek tuşla dene.
 - Hata ayıklama: `DebugSetNight n`, `DebugSkipObjective`, `DebugStoryEvent <olay>`, `DebugAutoplay <sn>`. `DebugTeleport` başarısız olursa log'da `Teleport blocked by ... (mesh ...)` yazar.

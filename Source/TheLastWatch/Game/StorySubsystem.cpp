@@ -13,6 +13,7 @@
 #include "TimerManager.h"
 #include "GameDataSubsystem.h"
 #include "InventoryComponent.h"
+#include "KeeperSaveSubsystem.h"
 #include "LastWatchGameMode.h"
 #include "LastWatchHUD.h"
 #include "LastWatchPlayerController.h"
@@ -76,6 +77,12 @@ void UStorySubsystem::StartNight(int32 Night)
 		GameMode->SetCurrentNight(Night);
 	}
 
+	// a debug command can start a night from the title screen
+	if (ALastWatchPlayerController* Keeper = GetKeeper(); Keeper && Keeper->GetMode() == EKeeperMode::Menu)
+	{
+		Keeper->CloseMenu();
+	}
+
 	// every night starts dark; the keeper has to bring the lamp up again
 	for (TActorIterator<ALighthouseBeam> It(GetWorld()); It; ++It)
 	{
@@ -96,6 +103,15 @@ void UStorySubsystem::StartNight(int32 Night)
 
 	RunActions(Data->OnStart);
 	StartObjective(0);
+
+	// autosave: the start of every night can be continued or replayed from the title
+	if (UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this); Save && Save->SaveNightStart(Night, GetKeeper()))
+	{
+		if (ALastWatchHUD* KeeperHUD = GetHUD())
+		{
+			KeeperHUD->ShowSaveIndicator();
+		}
+	}
 }
 
 void UStorySubsystem::StartObjective(int32 Index)
@@ -322,6 +338,18 @@ void UStorySubsystem::Execute(const FStoryAction& Action)
 	{
 		bEnded = true;
 		KeeperHUD->ShowEnding(Action.Text.Get());
+		if (UKeeperSaveSubsystem* Save = UKeeperSaveSubsystem::Get(this); Save && !Action.Arg.IsEmpty())
+		{
+			Save->RecordEnding(Action.Arg);
+		}
+		if (Keeper)
+		{
+			Keeper->EnterEnding();
+		}
+	}
+	else if (Type == TEXT("to_title") && Keeper)
+	{
+		Keeper->ReturnToTitle();
 	}
 	else if (Type == TEXT("quit") && Keeper)
 	{

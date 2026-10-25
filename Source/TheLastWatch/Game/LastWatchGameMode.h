@@ -25,7 +25,7 @@ public:
 
 	ALastWatchGameMode();
 
-	/** Starts the story once the keeper exists */
+	/** Opens the title screen (or, with -NoMenu, starts the story) once the keeper exists */
 	virtual void StartPlay() override;
 
 	int32 GetCurrentNight() const { return CurrentNight; }
