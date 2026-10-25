@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "id": "key_storeroom",
+      "name": { "en": "Store Room Key", "tr": "Depo Anahtarı" },
+      "description": { "en": "Iron, cold, tied to a strip of red cloth.", "tr": "Demir, soğuk, kırmızı bir bez parçasına bağlı." }
+    },
+    {
+      "id": "cassette_01",
+      "name": { "en": "Unlabelled Cassette", "tr": "Etiketsiz Kaset" },
+      "description": { "en": "Someone has scratched 'VESPER 7' into the plastic.", "tr": "Birisi plastiğe 'VESPER 7' kazımış." }
+    }
+  ]
+}

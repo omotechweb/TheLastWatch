@@ -1,0 +1,30 @@
+{
+  "_comment": "Interface strings. {0} is replaced with an object name.",
+  "strings": {
+    "prompt.read":        { "en": "[E] Read {0}",            "tr": "[E] Oku: {0}" },
+    "prompt.take":        { "en": "[E] Take {0}",            "tr": "[E] Al: {0}" },
+    "prompt.radio":       { "en": "[E] Use radio",           "tr": "[E] Telsizi kullan" },
+    "prompt.open":        { "en": "[E] Open",                "tr": "[E] Aç" },
+    "prompt.close":       { "en": "[E] Close",               "tr": "[E] Kapat" },
+    "prompt.locked":      { "en": "Locked",                  "tr": "Kilitli" },
+    "prompt.unlock":      { "en": "[E] Unlock with {0}",     "tr": "[E] Kilidi aç: {0}" },
+
+    "toast.picked_up":    { "en": "Picked up: {0}",          "tr": "Alındı: {0}" },
+    "toast.note_added":   { "en": "Added to documents: {0}", "tr": "Belgelere eklendi: {0}" },
+    "toast.locked":       { "en": "It won't budge. It needs a key.", "tr": "Kıpırdamıyor. Anahtar lazım." },
+    "toast.unlocked":     { "en": "Unlocked with {0}",       "tr": "Kilit açıldı: {0}" },
+
+    "reader.hint":        { "en": "[A / D] Turn page     [E] Close",    "tr": "[A / D] Sayfa çevir     [E] Kapat" },
+    "reader.page":        { "en": "Page {0}",                "tr": "Sayfa {0}" },
+
+    "radio.title":        { "en": "RADIO",                   "tr": "TELSİZ" },
+    "radio.hint":         { "en": "[A / D or mouse wheel] Tune     [E] Leave", "tr": "[A / D veya fare tekerleği] Ayarla     [E] Bırak" },
+    "radio.static":       { "en": "— static —",              "tr": "— parazit —" },
+
+    "inventory.title":    { "en": "INVENTORY",               "tr": "ENVANTER" },
+    "inventory.items":    { "en": "ITEMS",                   "tr": "EŞYALAR" },
+    "inventory.docs":     { "en": "DOCUMENTS",               "tr": "BELGELER" },
+    "inventory.empty":    { "en": "(nothing)",               "tr": "(boş)" },
+    "inventory.hint":     { "en": "[W / S] Select     [E] Read     [Tab] Close", "tr": "[W / S] Seç     [E] Oku     [Tab] Kapat" }
+  }
+}

@@ -1,0 +1,94 @@
+// The Last Watch
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+#include "GameDataSubsystem.generated.h"
+
+class FJsonObject;
+class FJsonValue;
+
+/** A string with an English original and an optional Turkish translation */
+struct FLocString
+{
+	FString En;
+	FString Tr;
+
+	/** Returns the text in the current game language (tlw.Language), falling back to English */
+	FText Get() const;
+};
+
+struct FNoteData
+{
+	FName Id;
+	FLocString Title;
+	TArray<FLocString> Pages;
+};
+
+struct FItemData
+{
+	FName Id;
+	FLocString Name;
+	FLocString Description;
+};
+
+struct FRadioLine
+{
+	FString Speaker;
+	FLocString Text;
+	float Duration = 3.0f;
+};
+
+struct FRadioTransmission
+{
+	FName Id;
+	float Frequency = 0.0f;
+
+	/** Nights this transmission is on air. Empty means every night. */
+	TArray<int32> Nights;
+
+	bool bLoop = false;
+	float LoopGap = 2.0f;
+	TArray<FRadioLine> Lines;
+
+	bool IsOnAir(int32 Night) const { return Nights.Num() == 0 || Nights.Contains(Night); }
+};
+
+/**
+ *  Loads all narrative and interface data from Content/Data/*.json at startup.
+ *  Every in-game string lives in those files so it can be translated without touching code.
+ */
+UCLASS()
+class THELASTWATCH_API UGameDataSubsystem : public UGameInstanceSubsystem
+{
+	GENERATED_BODY()
+
+public:
+
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
+	/** Re-reads every data file from disk */
+	void Reload();
+
+	const FNoteData* FindNote(FName Id) const { return Notes.Find(Id); }
+	const FItemData* FindItem(FName Id) const { return Items.Find(Id); }
+	const TArray<FRadioTransmission>& GetTransmissions() const { return Transmissions; }
+
+	/** Returns a UI string by key, with {0} replaced by Arg when given */
+	FText GetUIText(const FString& Key, const FText& Arg = FText::GetEmpty()) const;
+
+	/** Convenience accessor from any world context object */
+	static UGameDataSubsystem* Get(const UObject* WorldContext);
+
+private:
+
+	TSharedPtr<FJsonObject> LoadJsonFile(const FString& FileName) const;
+	static FLocString ParseLoc(const TSharedPtr<FJsonObject>& Object, const FString& Field);
+	static FLocString ParseLocValue(const TSharedPtr<FJsonValue>& Value);
+
+	TMap<FName, FNoteData> Notes;
+	TMap<FName, FItemData> Items;
+	TArray<FRadioTransmission> Transmissions;
+	TMap<FString, FLocString> UIStrings;
+};

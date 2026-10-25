@@ -1,0 +1,30 @@
+{
+  "_comment": "frequency in kHz. 'nights' limits when a transmission is on air (empty = always). 'loop' repeats after 'loop_gap' seconds.",
+  "transmissions": [
+    {
+      "id": "margaret_test",
+      "frequency": 2182,
+      "nights": [1],
+      "loop": false,
+      "lines": [
+        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Skerrow Rock, this is Coastguard Station Hale. Do you read me, Keeper?", "tr": "Skerrow Rock, burası Hale Sahil Güvenlik İstasyonu. Beni duyuyor musun, Bekçi?" } },
+        { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Good. The line's clear tonight. That doesn't happen often out there.", "tr": "Güzel. Hat bu gece temiz. Orada pek sık olmaz bu." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Lamp lit by sundown, log the weather every hour, and call in at three. Every night.", "tr": "Lamba gün batımında yanacak, hava her saat kaydedilecek ve saat üçte beni arayacaksın. Her gece." } },
+        { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Get some rest when you can. Hale out.", "tr": "Fırsat buldukça dinlen. Hale, tamam." } }
+      ]
+    },
+    {
+      "id": "numbers_station",
+      "frequency": 2340,
+      "nights": [],
+      "loop": true,
+      "loop_gap": 3.0,
+      "lines": [
+        { "speaker": "", "duration": 3.0, "text": { "en": "...zero. Three. One. Eight.", "tr": "...sıfır. Üç. Bir. Sekiz." } },
+        { "speaker": "", "duration": 3.0, "text": { "en": "Zero. Three. One. Eight.", "tr": "Sıfır. Üç. Bir. Sekiz." } },
+        { "speaker": "", "duration": 3.0, "text": { "en": "One. One. Four. Zero.", "tr": "Bir. Bir. Dört. Sıfır." } },
+        { "speaker": "", "duration": 3.0, "text": { "en": "Zero. Zero. Zero. Seven.", "tr": "Sıfır. Sıfır. Sıfır. Yedi." } }
+      ]
+    }
+  ]
+}

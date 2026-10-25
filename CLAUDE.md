@@ -24,8 +24,22 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 - Derleme (editör **kapalıyken**): `powershell -File Scripts/build.ps1`
 - Oyunu editörsüz çalıştır: `powershell -File Scripts/play.ps1` (isteğe bağlı `-Map /Game/...`)
 - Editör: `C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\Win64\UnrealEditor.exe`
-- Komut satırı editör / Python: `UnrealEditor-Cmd.exe TheLastWatch.uproject -run=pythonscript -script=<yol>` (Python Editor Script Plugin açık olmalı)
+- Editör Python betiği çalıştır (editör kapalıyken): `powershell -File Scripts/run_python.ps1 Scripts/Editor/<betik>.py`
+- Ekran görüntüsü al (HUD dahil): `powershell -File Scripts/screenshot.ps1 -Commands "DebugOpenNote elias_01" -Out Saved\Screenshots\x.png` — sonucu Read ile incele. Görsel değişiklikleri böyle doğrula.
 - Loglar: `Saved/Logs/TheLastWatch.log`
+
+## Geliştirici konsol komutları (oyunda ` tuşu)
+
+`DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
+
+## Oyun sistemleri (`Source/TheLastWatch/Game/`)
+
+- `GameDataSubsystem` — `Content/Data/*.json` okur (Notes, Items, Radio, UI). Metinler `{ "en": ..., "tr": ... }`.
+- `Interactables` — `AInteractableActor` tabanı + `ANotePickup`, `AItemPickup`, `AKeeperDoor`, `ARadioSet`. Geçici görünüm: tintlenmiş motor küpü.
+- `LastWatchPlayerController` — odak (line trace), E etkileşimi, modlar (Explore/Reading/Radio/Inventory), girdiler kodda oluşturulur.
+- `LastWatchHUD` — tüm arayüz Slate ile C++'ta.
+- `LastWatchGameMode` — şablonun `BP_HorrorCharacter`'ını kullanır, `CurrentNight` tutar.
+- Test haritası: `/Game/Maps/Dev/L_SystemsTest`, `Scripts/Editor/build_systems_test_map.py` ile üretilir (elle düzenleme; betiği değiştirip yeniden çalıştır).
 
 ## Proje yapısı
 

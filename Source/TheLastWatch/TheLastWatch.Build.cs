@@ -18,13 +18,16 @@ public class TheLastWatch : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"SlateCore",
+			"Json"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"TheLastWatch",
+			"TheLastWatch/Game",
 			"TheLastWatch/Variant_Horror",
 			"TheLastWatch/Variant_Horror/UI",
 			"TheLastWatch/Variant_Shooter",
