@@ -1,4 +1,4 @@
-// The Last Watch
+﻿// The Last Watch
 
 #include "StoryActors.h"
 #include "Components/BoxComponent.h"
@@ -18,7 +18,7 @@
 
 namespace
 {
-	FText ItemName(const UObject* Context, FName ItemId)
+	FText StoryItemName(const UObject* Context, FName ItemId)
 	{
 		const UGameDataSubsystem* Data = UGameDataSubsystem::Get(Context);
 		const FItemData* Item = Data ? Data->FindItem(ItemId) : nullptr;
@@ -48,7 +48,7 @@ FText AStoryTask::GetPrompt(const ALastWatchPlayerController* Keeper) const
 	}
 	if (!HasRequiredItem(Keeper))
 	{
-		return Data->GetUIText(TEXT("prompt.needs"), ItemName(this, RequiredItem));
+		return Data->GetUIText(TEXT("prompt.needs"), StoryItemName(this, RequiredItem));
 	}
 	return Data->GetUIText(HoldSeconds > 0.0f ? PromptKey + TEXT(".hold") : PromptKey);
 }
@@ -73,7 +73,7 @@ void AStoryTask::Interact(ALastWatchPlayerController* Keeper)
 	{
 		if (const UGameDataSubsystem* Data = UGameDataSubsystem::Get(this))
 		{
-			Keeper->ShowToast(Data->GetUIText(TEXT("prompt.needs"), ItemName(this, RequiredItem)));
+			Keeper->ShowToast(Data->GetUIText(TEXT("prompt.needs"), StoryItemName(this, RequiredItem)));
 		}
 		return;
 	}
