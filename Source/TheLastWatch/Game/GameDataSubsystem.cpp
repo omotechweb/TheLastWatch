@@ -97,8 +97,35 @@ FLocString UGameDataSubsystem::ParseLoc(const TSharedPtr<FJsonObject>& Object, c
 	return ParseLocValue(Object->TryGetField(Field));
 }
 
+TArray<FStoryAction> UGameDataSubsystem::ParseActions(const TSharedPtr<FJsonObject>& Object, const FString& Field)
+{
+	TArray<FStoryAction> Actions;
+	const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+	if (!Object->TryGetArrayField(Field, Values))
+	{
+		return Actions;
+	}
+
+	for (const TSharedPtr<FJsonValue>& Value : *Values)
+	{
+		const TSharedPtr<FJsonObject> ActionObject = Value->AsObject();
+		FStoryAction Action;
+		ActionObject->TryGetStringField(TEXT("type"), Action.Type);
+		ActionObject->TryGetStringField(TEXT("arg"), Action.Arg);
+		ActionObject->TryGetStringField(TEXT("speaker"), Action.Speaker);
+		Action.Text = ParseLoc(ActionObject, TEXT("text"));
+
+		double Number = 0.0;
+		if (ActionObject->TryGetNumberField(TEXT("delay"), Number)) { Action.Delay = Number; }
+		if (ActionObject->TryGetNumberField(TEXT("duration"), Number)) { Action.Duration = Number; }
+		Actions.Add(MoveTemp(Action));
+	}
+	return Actions;
+}
+
 void UGameDataSubsystem::Reload()
 {
+	Nights.Reset();
 	Notes.Reset();
 	Items.Reset();
 	Transmissions.Reset();
@@ -147,10 +174,10 @@ void UGameDataSubsystem::Reload()
 			Object->TryGetNumberField(TEXT("loop_gap"), LoopGap);
 			Transmission.LoopGap = LoopGap;
 
-			const TArray<TSharedPtr<FJsonValue>>* Nights = nullptr;
-			if (Object->TryGetArrayField(TEXT("nights"), Nights))
+			const TArray<TSharedPtr<FJsonValue>>* OnAirNights = nullptr;
+			if (Object->TryGetArrayField(TEXT("nights"), OnAirNights))
 			{
-				for (const TSharedPtr<FJsonValue>& Night : *Nights)
+				for (const TSharedPtr<FJsonValue>& Night : *OnAirNights)
 				{
 					Transmission.Nights.Add(static_cast<int32>(Night->AsNumber()));
 				}
@@ -173,6 +200,42 @@ void UGameDataSubsystem::Reload()
 		}
 	}
 
+	if (const TSharedPtr<FJsonObject> Root = LoadJsonFile(TEXT("Nights.json")))
+	{
+		for (const TSharedPtr<FJsonValue>& Value : Root->GetArrayField(TEXT("nights")))
+		{
+			const TSharedPtr<FJsonObject> Object = Value->AsObject();
+			FNightData Night;
+			Night.Night = static_cast<int32>(Object->GetNumberField(TEXT("night")));
+			Night.Title = ParseLoc(Object, TEXT("title"));
+			Night.OnStart = ParseActions(Object, TEXT("on_start"));
+
+			for (const TSharedPtr<FJsonValue>& ObjectiveValue : Object->GetArrayField(TEXT("objectives")))
+			{
+				const TSharedPtr<FJsonObject> ObjectiveObject = ObjectiveValue->AsObject();
+				FObjective Objective;
+				ObjectiveObject->TryGetStringField(TEXT("id"), Objective.Id);
+				ObjectiveObject->TryGetStringField(TEXT("complete_on"), Objective.CompleteOn);
+				Objective.Text = ParseLoc(ObjectiveObject, TEXT("text"));
+				Objective.OnStart = ParseActions(ObjectiveObject, TEXT("on_start"));
+				Objective.OnComplete = ParseActions(ObjectiveObject, TEXT("on_complete"));
+				Night.Objectives.Add(MoveTemp(Objective));
+			}
+
+			const TSharedPtr<FJsonObject>* Events = nullptr;
+			if (Object->TryGetObjectField(TEXT("events"), Events))
+			{
+				for (const TPair<FString, TSharedPtr<FJsonValue>>& Pair : (*Events)->Values)
+				{
+					TSharedPtr<FJsonObject> Wrapper = MakeShared<FJsonObject>();
+					Wrapper->SetField(TEXT("actions"), Pair.Value);
+					Night.Events.Add(Pair.Key, ParseActions(Wrapper, TEXT("actions")));
+				}
+			}
+			Nights.Add(MoveTemp(Night));
+		}
+	}
+
 	if (const TSharedPtr<FJsonObject> Root = LoadJsonFile(TEXT("UI.json")))
 	{
 		for (const TPair<FString, TSharedPtr<FJsonValue>>& Pair : Root->GetObjectField(TEXT("strings"))->Values)
@@ -181,8 +244,8 @@ void UGameDataSubsystem::Reload()
 		}
 	}
 
-	UE_LOG(LogTheLastWatch, Log, TEXT("Game data loaded: %d notes, %d items, %d transmissions, %d UI strings"),
-		Notes.Num(), Items.Num(), Transmissions.Num(), UIStrings.Num());
+	UE_LOG(LogTheLastWatch, Log, TEXT("Game data loaded: %d nights, %d notes, %d items, %d transmissions, %d UI strings"),
+		Nights.Num(), Notes.Num(), Items.Num(), Transmissions.Num(), UIStrings.Num());
 }
 
 FText UGameDataSubsystem::GetUIText(const FString& Key, const FText& Arg) const

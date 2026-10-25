@@ -32,7 +32,23 @@ public:
 	ALastWatchHUD();
 
 	void ShowToast(const FText& Text);
+
+	/** Continuous subtitle (the radio sets it every frame); empty clears it */
 	void SetSubtitle(const FText& Speaker, const FText& Line);
+
+	/** Story line that stays up for Duration seconds */
+	void ShowTimedSubtitle(const FText& Speaker, const FText& Line, float Duration);
+
+	/** Big centred text, e.g. "Night 2", that fades in and out */
+	void ShowTitleCard(const FText& Text, float Duration);
+
+	/** Fades the screen to black (1) or back (0) */
+	void FadeTo(float TargetOpacity, float Seconds);
+
+	/** End of the game: black screen with the ending text and credits */
+	void ShowEnding(const FText& Text);
+
+	virtual void Tick(float DeltaSeconds) override;
 
 protected:
 
@@ -68,4 +84,22 @@ private:
 
 	FText SubtitleSpeaker;
 	FText SubtitleLine;
+
+	FText TimedSpeaker;
+	FText TimedLine;
+	float TimedUntil = -1.0f;
+
+	FText TitleText;
+	float TitleStart = -100.0f;
+	float TitleDuration = 0.0f;
+
+	float FadeOpacity = 0.0f;
+	float FadeTarget = 0.0f;
+	float FadeSpeed = 1.0f;
+
+	FText EndingText;
+	bool bEnding = false;
+
+	TSharedRef<SWidget> BuildStoryOverlay();
+	float GetTitleOpacity() const;
 };

@@ -107,9 +107,21 @@ public:
 	UFUNCTION(Exec)
 	void DebugRadio(float Frequency);
 
-	/** Switches to night 1..5 */
+	/** Starts night 1..5 from its beginning */
 	UFUNCTION(Exec)
 	void DebugSetNight(int32 Night);
+
+	/** Sends a story event, e.g. DebugStoryEvent task:refuel */
+	UFUNCTION(Exec)
+	void DebugStoryEvent(const FString& Event);
+
+	/** Completes the current objective by sending the event it waits for */
+	UFUNCTION(Exec)
+	void DebugSkipObjective();
+
+	/** Skips an objective every Interval seconds until the game ends (story smoke test) */
+	UFUNCTION(Exec)
+	void DebugAutoplay(float Interval);
 
 	/** Moves the keeper to X Y Z (cm) looking at Yaw / Pitch (degrees) */
 	UFUNCTION(Exec)
@@ -139,6 +151,9 @@ public:
 	ARadioSet* GetActiveRadio() const { return ActiveRadio.Get(); }
 	int32 GetInventorySelection() const { return InventorySelection; }
 
+	/** 0..1 while holding E on a hold task, 0 otherwise */
+	float GetHoldProgress() const;
+
 protected:
 
 	virtual void SetupInputComponent() override;
@@ -151,6 +166,7 @@ protected:
 
 	// input handlers
 	void OnInteract();
+	void OnInteractReleased();
 	void OnJumpStarted();
 	void OnJumpCompleted();
 	void OnCrouchHeld();
@@ -198,6 +214,10 @@ private:
 
 	TWeakObjectPtr<AInteractableActor> Focused;
 	TWeakObjectPtr<ARadioSet> ActiveRadio;
+
+	/** Story task being held, and for how long */
+	TWeakObjectPtr<class AStoryTask> HoldTarget;
+	float HoldTime = 0.0f;
 
 	FName OpenNoteId;
 	int32 NotePage = 0;

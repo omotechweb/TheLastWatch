@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Components/LocalLightComponent.h"
+#include "Engine/OverlapResult.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
@@ -28,6 +29,8 @@
 #include "LastWatchGameMode.h"
 #include "LastWatchHUD.h"
 #include "LighthouseBeam.h"
+#include "StoryActors.h"
+#include "StorySubsystem.h"
 #include "TheLastWatch.h"
 
 ALastWatchPlayerController::ALastWatchPlayerController()
@@ -141,6 +144,7 @@ void ALastWatchPlayerController::SetupInputComponent()
 	if (UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnInteract);
+		Input->BindAction(InteractAction, ETriggerEvent::Completed, this, &ALastWatchPlayerController::OnInteractReleased);
 		Input->BindAction(JumpAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnJumpStarted);
 		Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &ALastWatchPlayerController::OnJumpCompleted);
 		Input->BindAction(CrouchHoldAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnCrouchHeld);
@@ -303,6 +307,20 @@ void ALastWatchPlayerController::PlayerTick(float DeltaTime)
 		UpdateFocus();
 	}
 
+	// hold-to-use: keep looking at the task with E down until the bar fills
+	if (AStoryTask* Task = HoldTarget.Get())
+	{
+		if (Focused.Get() != Task || !Task->CanInteract(this))
+		{
+			OnInteractReleased();
+		}
+		else if ((HoldTime += DeltaTime) >= Task->GetHoldSeconds())
+		{
+			OnInteractReleased();
+			Task->Complete(this);
+		}
+	}
+
 	// walked off a cliff or into the sea
 	APawn* KeeperPawn = GetPawn();
 
@@ -311,12 +329,19 @@ void ALastWatchPlayerController::PlayerTick(float DeltaTime)
 	{
 		if (const ACharacter* KeeperCharacter = Cast<ACharacter>(KeeperPawn))
 		{
-			UE_LOG(LogTheLastWatch, Display, TEXT("Pawn x=%.1f y=%.1f z=%.1f vz=%.1f mode=%d crouched=%d halfHeight=%.1f"),
+			FVector EyeLocation;
+			FRotator EyeRotation;
+			GetPlayerViewPoint(EyeLocation, EyeRotation);
+			FHitResult LookHit;
+			FCollisionQueryParams LookParams(SCENE_QUERY_STAT(LookLog), false, KeeperPawn);
+			GetWorld()->LineTraceSingleByChannel(LookHit, EyeLocation, EyeLocation + EyeRotation.Vector() * InteractRange, ECC_Visibility, LookParams);
+			UE_LOG(LogTheLastWatch, Display, TEXT("Pawn x=%.1f y=%.1f z=%.1f vz=%.1f mode=%d crouched=%d halfHeight=%.1f focus=%s looking=%s"),
 				KeeperPawn->GetActorLocation().X, KeeperPawn->GetActorLocation().Y,
 				KeeperPawn->GetActorLocation().Z, KeeperPawn->GetVelocity().Z,
 				static_cast<int32>(KeeperCharacter->GetCharacterMovement()->MovementMode.GetValue()),
 				KeeperCharacter->bIsCrouched,
-				KeeperCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+				KeeperCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(),
+				*GetNameSafe(Focused.Get()), *GetNameSafe(LookHit.GetActor()));
 
 			// pushing but not moving: report what is in the way, once a second
 			const FVector Push = KeeperCharacter->GetCharacterMovement()->GetCurrentAcceleration().GetSafeNormal2D();
@@ -375,6 +400,19 @@ void ALastWatchPlayerController::UpdateFocus()
 		if (Target && Target->CanInteract(this))
 		{
 			Focused = Target;
+			return;
+		}
+
+		// several story tasks can share one spot (wind / inspect / repair the clockwork);
+		// the one hit may be idle tonight, so take any usable interactable around the hit point
+		for (TActorIterator<AInteractableActor> It(GetWorld()); It; ++It)
+		{
+			if (*It != Target && It->CanInteract(this) && !It->IsHidden()
+				&& It->GetComponentsBoundingBox().ExpandBy(15.0f).IsInside(Hit.ImpactPoint))
+			{
+				Focused = *It;
+				return;
+			}
 		}
 	}
 }
@@ -389,6 +427,12 @@ void ALastWatchPlayerController::OnInteract()
 	case EKeeperMode::Explore:
 		if (AInteractableActor* Target = Focused.Get())
 		{
+			AStoryTask* Task = Cast<AStoryTask>(Target);
+			if (Task && Task->GetHoldSeconds() > 0.0f && Task->HasRequiredItem(this))
+			{
+				HoldTarget = Task;
+				HoldTime = 0.0f;
+			}
 			Target->Interact(this);
 		}
 		break;
@@ -407,6 +451,18 @@ void ALastWatchPlayerController::OnInteract()
 		OnBack();
 		break;
 	}
+}
+
+void ALastWatchPlayerController::OnInteractReleased()
+{
+	HoldTarget.Reset();
+	HoldTime = 0.0f;
+}
+
+float ALastWatchPlayerController::GetHoldProgress() const
+{
+	const AStoryTask* Task = HoldTarget.Get();
+	return Task ? FMath::Clamp(HoldTime / Task->GetHoldSeconds(), 0.0f, 1.0f) : 0.0f;
 }
 
 void ALastWatchPlayerController::OnJumpStarted()
@@ -546,10 +602,41 @@ void ALastWatchPlayerController::DebugRadio(float Frequency)
 
 void ALastWatchPlayerController::DebugSetNight(int32 Night)
 {
-	if (ALastWatchGameMode* GameMode = GetWorld()->GetAuthGameMode<ALastWatchGameMode>())
+	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
 	{
-		GameMode->SetCurrentNight(Night);
+		Story->StartNight(Night);
 	}
+}
+
+void ALastWatchPlayerController::DebugStoryEvent(const FString& Event)
+{
+	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+	{
+		Story->Notify(Event);
+	}
+}
+
+void ALastWatchPlayerController::DebugSkipObjective()
+{
+	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+	{
+		Story->SkipObjective();
+	}
+}
+
+void ALastWatchPlayerController::DebugAutoplay(float Interval)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]
+	{
+		UStorySubsystem* Story = UStorySubsystem::Get(this);
+		if (Story && !Story->HasEnded())
+		{
+			UE_LOG(LogTheLastWatch, Display, TEXT("Autoplay: night %d objective '%s' pawn %s"), Story->GetNight(),
+				*Story->GetObjectiveId(), GetPawn() ? *GetPawn()->GetActorLocation().ToString() : TEXT("-"));
+			Story->SkipObjective();
+		}
+	}), FMath::Max(Interval, 0.5f), true);
 }
 
 void ALastWatchPlayerController::DebugTeleport(float X, float Y, float Z, float Yaw, float Pitch)
@@ -561,7 +648,25 @@ void ALastWatchPlayerController::DebugTeleport(float X, float Y, float Z, float 
 		{
 			KeeperCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Flying);
 		}
-		KeeperPawn->TeleportTo(FVector(X, Y, Z), FRotator(0.0f, Yaw, 0.0f));
+		if (!KeeperPawn->TeleportTo(FVector(X, Y, Z), FRotator(0.0f, Yaw, 0.0f)))
+		{
+			// say what is in the way, so a bad test position is obvious
+			TArray<FOverlapResult> Overlaps;
+			const UCapsuleComponent* Capsule = Cast<ACharacter>(KeeperPawn)->GetCapsuleComponent();
+			GetWorld()->OverlapMultiByChannel(Overlaps, FVector(X, Y, Z), FQuat::Identity, ECC_Pawn,
+				FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight()),
+				FCollisionQueryParams(SCENE_QUERY_STAT(TeleportCheck), false, KeeperPawn));
+			for (const FOverlapResult& Overlap : Overlaps)
+			{
+				const UStaticMeshComponent* MeshComponent = Cast<UStaticMeshComponent>(Overlap.GetComponent());
+				UE_LOG(LogTheLastWatch, Warning, TEXT("Teleport blocked by %s / %s (mesh %s)"), *GetNameSafe(Overlap.GetActor()),
+					*GetNameSafe(Overlap.GetComponent()), MeshComponent ? *GetNameSafe(MeshComponent->GetStaticMesh()) : TEXT("-"));
+			}
+			if (Overlaps.Num() == 0)
+			{
+				UE_LOG(LogTheLastWatch, Warning, TEXT("Teleport to %.0f %.0f %.0f failed"), X, Y, Z);
+			}
+		}
 		SetControlRotation(FRotator(Pitch, Yaw, 0.0f));
 	}
 }

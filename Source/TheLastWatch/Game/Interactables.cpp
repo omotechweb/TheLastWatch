@@ -9,6 +9,7 @@
 #include "InventoryComponent.h"
 #include "LastWatchGameMode.h"
 #include "LastWatchPlayerController.h"
+#include "StorySubsystem.h"
 
 namespace
 {
@@ -94,8 +95,14 @@ void ANotePickup::Interact(ALastWatchPlayerController* Keeper)
 	}
 
 	// the page is taken; it can be re-read from the inventory
+	bCollected = true;
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
+
+	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+	{
+		Story->Notify(TEXT("read:") + NoteId.ToString());
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -122,6 +129,10 @@ void AItemPickup::Interact(ALastWatchPlayerController* Keeper)
 		Keeper->ShowToast(Data->GetUIText(TEXT("toast.picked_up"), ItemName(this, ItemId)));
 	}
 
+	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+	{
+		Story->Notify(TEXT("take:") + ItemId.ToString());
+	}
 	Destroy();
 }
 
@@ -232,6 +243,11 @@ void ARadioSet::Interact(ALastWatchPlayerController* Keeper)
 	Keeper->EnterRadio(this);
 }
 
+void ARadioSet::SetUser(ALastWatchPlayerController* Keeper)
+{
+	User = Keeper;
+}
+
 void ARadioSet::Tune(float Delta)
 {
 	Frequency = FMath::Clamp(Frequency + Delta, MinFrequency, MaxFrequency);
@@ -330,6 +346,11 @@ void ARadioSet::Tick(float DeltaSeconds)
 			else
 			{
 				State.bFinished = true;
+			}
+			// heard to the end (loops count once per pass)
+			if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+			{
+				Story->Notify(TEXT("radio:") + Transmission->Id.ToString());
 			}
 		}
 	}

@@ -66,6 +66,16 @@ Işık kuralı: pozlama ay ışığına göre sabit (EV100 -1.9). ~1 lüksü ge�
 
 Malzeme betiklerinde: `ComponentMask` kanallarını her zaman `set_mask()` ile açıkça ver (varsayılanlar kapalı değil); GeometryScript köşe renkleri statik mesh'e geçmiyor, maske için doku kullan.
 
+Sığınak: `Scripts/Editor/build_bunker.py` (haritadan önce) — VESPER istasyonu, adanın 300 m üstünde (yükseklik sisinin dışında), kalıntıdaki kapaktan ışınlanarak girilir. Harita kurulum sırası: terrain → lighthouse → bunker → skerrow_map.
+
+## Hikaye (5 gece)
+
+- Senaryo tamamen `Content/Data/Nights.json`: her gece `on_start` eylemleri + sıralı `objectives` (`complete_on` olayı) + `events` (o gece her zaman tepki; son gecedeki seçim). Belgeler `Notes.json`, telsiz `Radio.json` (`nights` alanı), eşyalar `Items.json`, istemler `UI.json`.
+- `UStorySubsystem` (`Game/StorySubsystem.*`) geceyi başlatır, olayları dinler: `read:<not>`, `take:<eşya>`, `task:<id>`, `enter:<alan>`, `radio:<yayın>`, `use:<kapı>`, `delay:<sn>`. Eylemler: subtitle, title, toast, fade_out/in, show/hide (etiket), lamp_on/off, give/remove, sound, teleport (etiket), storm, fog, ambience (`etiket=ses`), notify, next_night, ending, quit.
+- Haritadaki karşılıkları `build_skerrow_map.py` sonundaki "story" bölümünde: `AStoryTask` (görünmez kutu, basılı tutma, gerekli eşya; yalnızca hikaye onu beklerken kullanılabilir), `AStoryVolume`, `ATeleportDoor`, `ATargetPoint` etiketleri, `AStormController`. Aktör etiketi `night:3-5` → sadece o gecelerde görünür.
+- Yeni gece adımı eklemek: JSON'a objective yaz → gerekiyorsa haritaya task/volume ekle (id'ler aynı) → `DebugAutoplay 5` ile tüm akışı log'dan doğrula (`Story:` satırları) → kritik etkileşimi `test_input.ps1` ile gerçek tuşla dene.
+- Hata ayıklama: `DebugSetNight n`, `DebugSkipObjective`, `DebugStoryEvent <olay>`, `DebugAutoplay <sn>`. `DebugTeleport` başarısız olursa log'da `Teleport blocked by ... (mesh ...)` yazar.
+
 ## Üçüncü parti asset'ler
 
 Fab paketleri git'te değil (bkz. `CREDITS.md`). Yeni bir paket eklendiğinde `Scripts/Editor/asset_inventory.py` çalıştır, `Saved/asset_inventory.txt` içinde mesh adları ve boyutları çıkar. Fener modeli CC-BY: jenerikte DylanHayes'e atıf zorunlu.

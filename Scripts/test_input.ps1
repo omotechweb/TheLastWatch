@@ -58,6 +58,8 @@ foreach ($key in $Keys.Split(";")) {
         [KeyInput]::PostDown($h, $code)
     } elseif ($key -eq "CTRLUP" -or $key -eq "WUP") {
         [KeyInput]::PostUp($h, $(if ($key -eq "CTRLUP") { 0x11 } else { 0x57 }))
+    } elseif ($key -match "^(\w+)UP$" -and $vk.ContainsKey($Matches[1])) {
+        [KeyInput]::PostUp($h, $vk[$Matches[1]])
     } elseif ($vk.ContainsKey($key)) {
         [KeyInput]::PostDown($h, $vk[$key]); Start-Sleep -Milliseconds 150; [KeyInput]::PostUp($h, $vk[$key])
     } else {

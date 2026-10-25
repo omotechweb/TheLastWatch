@@ -2,13 +2,28 @@
   "items": [
     {
       "id": "key_storeroom",
-      "name": { "en": "Store Room Key", "tr": "Depo Anahtarı" },
+      "name": { "en": "Shed Key", "tr": "Baraka Anahtarı" },
       "description": { "en": "Iron, cold, tied to a strip of red cloth.", "tr": "Demir, soğuk, kırmızı bir bez parçasına bağlı." }
     },
     {
       "id": "cassette_01",
       "name": { "en": "Unlabelled Cassette", "tr": "Etiketsiz Kaset" },
       "description": { "en": "Someone has scratched 'VESPER 7' into the plastic.", "tr": "Birisi plastiğe 'VESPER 7' kazımış." }
+    },
+    {
+      "id": "fuel_can",
+      "name": { "en": "Can of Paraffin", "tr": "Gazyağı Bidonu" },
+      "description": { "en": "Enough for one night of light.", "tr": "Bir gecelik ışığa yetecek kadar." }
+    },
+    {
+      "id": "spare_cable",
+      "name": { "en": "Spare Weight Cable", "tr": "Yedek Ağırlık Halatı" },
+      "description": { "en": "Braided steel, greased, still in its paper.", "tr": "Örgülü çelik, yağlı, hâlâ kâğıdında." }
+    },
+    {
+      "id": "hatch_key",
+      "name": { "en": "Key Stamped M/T-7", "tr": "M/T-7 Damgalı Anahtar" },
+      "description": { "en": "Too heavy for any door on the island. Government issue.", "tr": "Adadaki hiçbir kapı için fazla ağır. Devlet malı." }
     }
   ]
 }

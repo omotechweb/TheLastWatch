@@ -55,6 +55,42 @@ struct FRadioTransmission
 	bool IsOnAir(int32 Night) const { return Nights.Num() == 0 || Nights.Contains(Night); }
 };
 
+/** One step of a story script, run by UStorySubsystem (see Content/Data/Nights.json) */
+struct FStoryAction
+{
+	FString Type;
+	FString Arg;
+	FString Speaker;
+	FLocString Text;
+	float Delay = 0.0f;
+	float Duration = 4.0f;
+};
+
+struct FObjective
+{
+	FString Id;
+
+	/** Shown in the corner while active; empty = silent step */
+	FLocString Text;
+
+	/** Event that completes it: read:<note> take:<item> task:<id> enter:<volume> radio:<transmission> use:<door> delay:<seconds> */
+	FString CompleteOn;
+
+	TArray<FStoryAction> OnStart;
+	TArray<FStoryAction> OnComplete;
+};
+
+struct FNightData
+{
+	int32 Night = 1;
+	FLocString Title;
+	TArray<FStoryAction> OnStart;
+	TArray<FObjective> Objectives;
+
+	/** Actions for an event whenever it happens this night, objective or not (e.g. the final choice) */
+	TMap<FString, TArray<FStoryAction>> Events;
+};
+
 /**
  *  Loads all narrative and interface data from Content/Data/*.json at startup.
  *  Every in-game string lives in those files so it can be translated without touching code.
@@ -74,6 +110,8 @@ public:
 	const FNoteData* FindNote(FName Id) const { return Notes.Find(Id); }
 	const FItemData* FindItem(FName Id) const { return Items.Find(Id); }
 	const TArray<FRadioTransmission>& GetTransmissions() const { return Transmissions; }
+	const FNightData* FindNight(int32 Night) const { return Nights.FindByPredicate([Night](const FNightData& N) { return N.Night == Night; }); }
+	int32 GetNightCount() const { return Nights.Num(); }
 
 	/** Returns a UI string by key, with {0} replaced by Arg when given */
 	FText GetUIText(const FString& Key, const FText& Arg = FText::GetEmpty()) const;
@@ -86,7 +124,9 @@ private:
 	TSharedPtr<FJsonObject> LoadJsonFile(const FString& FileName) const;
 	static FLocString ParseLoc(const TSharedPtr<FJsonObject>& Object, const FString& Field);
 	static FLocString ParseLocValue(const TSharedPtr<FJsonValue>& Value);
+	static TArray<FStoryAction> ParseActions(const TSharedPtr<FJsonObject>& Object, const FString& Field);
 
+	TArray<FNightData> Nights;
 	TMap<FName, FNoteData> Notes;
 	TMap<FName, FItemData> Items;
 	TArray<FRadioTransmission> Transmissions;

@@ -1,0 +1,255 @@
+{
+  "_comment": "The five nights. Objectives run in order; complete_on is the event that finishes one (read:<note> take:<item> task:<id> enter:<volume> radio:<transmission> use:<door> delay:<s>, 'a|b' for either). Actions: subtitle title toast fade_out fade_in show hide lamp_on lamp_off give remove sound teleport storm fog ambience notify next_night ending quit. 'events' react to an event whenever it happens that night.",
+  "nights": [
+    {
+      "night": 1,
+      "title": { "en": "The First Night", "tr": "Birinci Gece" },
+      "on_start": [
+        { "type": "fade_out", "duration": 0.01 },
+        { "type": "fade_in", "duration": 4.0, "delay": 1.0 },
+        { "type": "title", "duration": 5.0, "delay": 1.5, "text": { "en": "Skerrow Rock, October 1974", "tr": "Skerrow Rock, Ekim 1974" } },
+        { "type": "subtitle", "delay": 7.0, "duration": 5.0, "text": { "en": "The boat won't be back for a month. Just me, the lamp and the radio.", "tr": "Tekne bir ay geri gelmeyecek. Sadece ben, lamba ve telsiz." } }
+      ],
+      "objectives": [
+        { "id": "go_cottage", "complete_on": "enter:cottage",
+          "text": { "en": "Follow the path up to the keeper's cottage", "tr": "Patikayı izleyip bekçi kulübesine çık" } },
+        { "id": "read_journal", "complete_on": "read:elias_01",
+          "text": { "en": "Elias left his journal on the table", "tr": "Elias günlüğünü masada bırakmış" },
+          "on_complete": [
+            { "type": "subtitle", "delay": 1.0, "duration": 5.0, "text": { "en": "Three weeks he's been gone. They said he fell. They didn't say from where.", "tr": "Üç haftadır kayıp. Düştü dediler. Nereden düştüğünü söylemediler." } }
+          ] },
+        { "id": "go_lighthouse", "complete_on": "enter:lighthouse",
+          "text": { "en": "Go to the lighthouse", "tr": "Fenere git" } },
+        { "id": "read_orders", "complete_on": "read:standing_orders",
+          "text": { "en": "Read the standing orders on the desk", "tr": "Masadaki talimatnameyi oku" } },
+        { "id": "get_fuel", "complete_on": "task:fuel_drum",
+          "text": { "en": "Fill a can of paraffin from the store drums", "tr": "Depodaki varillerden bir bidon gazyağı doldur" },
+          "on_complete": [ { "type": "give", "arg": "fuel_can" } ] },
+        { "id": "refuel", "complete_on": "task:refuel",
+          "text": { "en": "Climb to the lantern and fill the lamp's reservoir", "tr": "Lamba odasına çık ve haznesini doldur" } },
+        { "id": "clean", "complete_on": "task:clean_lens",
+          "text": { "en": "Clean the salt off the lens", "tr": "Mercekteki tuzu temizle" } },
+        { "id": "wind", "complete_on": "task:wind",
+          "text": { "en": "Wind the clockwork that turns the lens", "tr": "Merceği döndüren zembereği kur" },
+          "on_complete": [
+            { "type": "lamp_on" },
+            { "type": "subtitle", "delay": 1.5, "duration": 4.0, "text": { "en": "There. Twenty miles of light.", "tr": "İşte. Yirmi millik ışık." } }
+          ] },
+        { "id": "radio", "complete_on": "radio:margaret_n1",
+          "text": { "en": "Report to Hale on the radio in the shed (2182 kHz)", "tr": "Barakadaki telsizden Hale'e haber ver (2182 kHz)" } },
+        { "id": "sleep", "complete_on": "task:sleep",
+          "text": { "en": "Go back to the cottage and get some sleep", "tr": "Kulübeye dön ve biraz uyu" },
+          "on_start": [
+            { "type": "show", "arg": "fog_lights", "delay": 12.0 },
+            { "type": "subtitle", "delay": 14.0, "duration": 6.0, "text": { "en": "...A light, out in the fog. There's nothing out there. There's no ship due.", "tr": "...Sisin içinde bir ışık. Orada hiçbir şey yok. Beklenen bir gemi yok." } }
+          ],
+          "on_complete": [
+            { "type": "fade_out", "duration": 2.5 },
+            { "type": "next_night", "delay": 3.5 }
+          ] }
+      ]
+    },
+    {
+      "night": 2,
+      "title": { "en": "The Second Night", "tr": "İkinci Gece" },
+      "on_start": [
+        { "type": "fade_out", "duration": 0.01 },
+        { "type": "teleport", "arg": "wake_cottage" },
+        { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
+        { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Second Night", "tr": "İkinci Gece" } },
+        { "type": "subtitle", "delay": 5.5, "duration": 5.0, "text": { "en": "Slept through the day again. The island looks different at dusk. Smaller.", "tr": "Yine bütün gün uyumuşum. Ada alacakaranlıkta başka görünüyor. Daha küçük." } }
+      ],
+      "objectives": [
+        { "id": "get_fuel", "complete_on": "task:fuel_drum",
+          "text": { "en": "Fetch paraffin from the lighthouse store", "tr": "Fener deposundan gazyağı al" },
+          "on_complete": [ { "type": "give", "arg": "fuel_can" } ] },
+        { "id": "refuel", "complete_on": "task:refuel",
+          "text": { "en": "Fill the lamp's reservoir", "tr": "Lambanın haznesini doldur" } },
+        { "id": "wind", "complete_on": "task:wind",
+          "text": { "en": "Wind the clockwork", "tr": "Zembereği kur" },
+          "on_complete": [ { "type": "lamp_on" } ] },
+        { "id": "radio", "complete_on": "radio:margaret_n2",
+          "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" },
+          "on_complete": [
+            { "type": "lamp_off", "delay": 6.0 },
+            { "type": "subtitle", "delay": 7.0, "duration": 5.0, "text": { "en": "...The beam. It's stopped. The lamp's gone dark.", "tr": "...Huzme. Durdu. Lamba söndü." } }
+          ] },
+        { "id": "inspect", "complete_on": "task:inspect_lamp",
+          "text": { "en": "Find out why the lamp went out", "tr": "Lambanın neden söndüğünü bul" },
+          "on_complete": [
+            { "type": "subtitle", "duration": 6.0, "text": { "en": "The weight cable has been cut. Clean through, with a knife. Someone was up here while I was on the radio.", "tr": "Ağırlık halatı kesilmiş. Bıçakla, tertemiz. Ben telsizdeyken biri buradaymış." } }
+          ] },
+        { "id": "toolbox", "complete_on": "task:toolbox",
+          "text": { "en": "Find a spare cable in the tool crate by the radio shed", "tr": "Telsiz barakasının yanındaki alet sandığında yedek halat bul" },
+          "on_complete": [ { "type": "give", "arg": "spare_cable" } ] },
+        { "id": "repair", "complete_on": "task:repair",
+          "text": { "en": "Fit the new cable to the clockwork", "tr": "Yeni halatı zembereğe tak" },
+          "on_complete": [
+            { "type": "lamp_on" },
+            { "type": "subtitle", "delay": 1.0, "duration": 6.0, "text": { "en": "Footprints on the stairs. Bare feet. And they go down toward the shore, not back to the cottage.", "tr": "Merdivende ayak izleri. Çıplak ayak. Ve kulübeye değil, kıyıya doğru iniyorlar." } }
+          ] },
+        { "id": "wreck", "complete_on": "read:elias_notebook",
+          "text": { "en": "Follow them down to the old boat on the shore", "tr": "İzleri kıyıdaki eski tekneye kadar takip et" },
+          "on_complete": [
+            { "type": "give", "arg": "hatch_key" },
+            { "type": "toast", "delay": 0.5, "text": { "en": "A heavy key was tucked inside the cover", "tr": "Kapağın içine ağır bir anahtar sıkıştırılmış" } }
+          ] },
+        { "id": "sleep", "complete_on": "task:sleep",
+          "text": { "en": "Go back to the cottage. Lock the door.", "tr": "Kulübeye dön. Kapıyı kilitle." },
+          "on_complete": [
+            { "type": "fade_out", "duration": 2.5 },
+            { "type": "next_night", "delay": 3.5 }
+          ] }
+      ]
+    },
+    {
+      "night": 3,
+      "title": { "en": "The Third Night", "tr": "Üçüncü Gece" },
+      "on_start": [
+        { "type": "fade_out", "duration": 0.01 },
+        { "type": "teleport", "arg": "wake_cottage" },
+        { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
+        { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Third Night", "tr": "Üçüncü Gece" } },
+        { "type": "subtitle", "delay": 5.5, "duration": 6.0, "text": { "en": "M/T-7, stamped on the key. Elias marked the north of the island in his notebook. Three times.", "tr": "Anahtarın üstünde M/T-7 damgası. Elias not defterinde adanın kuzeyini işaretlemiş. Üç kez." } }
+      ],
+      "objectives": [
+        { "id": "get_fuel", "complete_on": "task:fuel_drum",
+          "text": { "en": "Fetch paraffin from the lighthouse store", "tr": "Fener deposundan gazyağı al" },
+          "on_complete": [ { "type": "give", "arg": "fuel_can" } ] },
+        { "id": "refuel", "complete_on": "task:refuel",
+          "text": { "en": "Fill the lamp's reservoir", "tr": "Lambanın haznesini doldur" } },
+        { "id": "wind", "complete_on": "task:wind",
+          "text": { "en": "Wind the clockwork", "tr": "Zembereği kur" },
+          "on_complete": [ { "type": "lamp_on" } ] },
+        { "id": "ruin", "complete_on": "enter:ruin",
+          "text": { "en": "Find the old concrete post on the north side", "tr": "Kuzeydeki eski beton yapıyı bul" } },
+        { "id": "hatch", "complete_on": "use:hatch_down",
+          "text": { "en": "There's a steel hatch in the floor of the ruin", "tr": "Kalıntının zemininde çelik bir kapak var" },
+          "on_complete": [
+            { "type": "subtitle", "delay": 1.5, "duration": 5.0, "text": { "en": "Electric light. Down here, all this time. Someone has kept the generator running.", "tr": "Elektrik ışığı. Bunca zamandır burada. Biri jeneratörü çalışır tutmuş." } }
+          ] },
+        { "id": "vesper", "complete_on": "read:vesper_memo",
+          "text": { "en": "Search the listening room", "tr": "Dinleme odasını ara" } },
+        { "id": "codes", "complete_on": "read:timing_codes",
+          "text": { "en": "Find out what the numbers mean", "tr": "Sayıların ne anlama geldiğini bul" },
+          "on_complete": [
+            { "type": "subtitle", "delay": 1.0, "duration": 7.0, "text": { "en": "Three-eighteen. Eleven-forty. They're the lamp's timings. Someone reads my lamp's rhythm out over the air, every night.", "tr": "Üç on sekiz. On bir kırk. Lambanın zamanlamaları bunlar. Biri her gece lambamın ritmini yayında okuyor." } }
+          ] },
+        { "id": "leave", "complete_on": "use:hatch_up",
+          "text": { "en": "Climb back up", "tr": "Yukarı çık" } },
+        { "id": "radio", "complete_on": "radio:margaret_n3",
+          "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" } },
+        { "id": "sleep", "complete_on": "task:sleep",
+          "text": { "en": "Go back to the cottage", "tr": "Kulübeye dön" },
+          "on_complete": [
+            { "type": "fade_out", "duration": 2.5 },
+            { "type": "next_night", "delay": 3.5 }
+          ] }
+      ]
+    },
+    {
+      "night": 4,
+      "title": { "en": "The Fourth Night", "tr": "Dördüncü Gece" },
+      "on_start": [
+        { "type": "fade_out", "duration": 0.01 },
+        { "type": "teleport", "arg": "wake_cottage" },
+        { "type": "storm", "arg": "on" },
+        { "type": "fog", "arg": "0.02" },
+        { "type": "ambience", "arg": "wind=1.6" },
+        { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
+        { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Fourth Night", "tr": "Dördüncü Gece" } },
+        { "type": "subtitle", "delay": 5.5, "duration": 6.0, "text": { "en": "The floor's wet. Something came in from the sea while I slept, and stood by the bed.", "tr": "Zemin ıslak. Ben uyurken denizden bir şey girmiş ve yatağın başında durmuş." } }
+      ],
+      "objectives": [
+        { "id": "get_fuel", "complete_on": "task:fuel_drum",
+          "text": { "en": "The storm's coming in. Fetch paraffin", "tr": "Fırtına geliyor. Gazyağı al" },
+          "on_complete": [ { "type": "give", "arg": "fuel_can" } ] },
+        { "id": "refuel", "complete_on": "task:refuel",
+          "text": { "en": "Fill the lamp's reservoir", "tr": "Lambanın haznesini doldur" } },
+        { "id": "wind", "complete_on": "task:wind",
+          "text": { "en": "Wind the clockwork", "tr": "Zembereği kur" },
+          "on_complete": [ { "type": "lamp_on" } ] },
+        { "id": "radio", "complete_on": "radio:margaret_n4",
+          "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" } },
+        { "id": "elias", "complete_on": "radio:elias_n4",
+          "text": { "en": "There's another voice in the static. Search the dial", "tr": "Parazitte başka bir ses var. Kadranı tara" },
+          "on_start": [
+            { "type": "subtitle", "delay": 1.0, "duration": 5.0, "text": { "en": "...wait. Under the static, lower on the dial. Someone saying my name.", "tr": "...bekle. Parazitin altında, kadranın aşağısında. Biri adımı söylüyor." } }
+          ] },
+        { "id": "bunker", "complete_on": "use:hatch_down",
+          "text": { "en": "Go back down to the station", "tr": "İstasyona geri in" } },
+        { "id": "tape", "complete_on": "task:tape",
+          "text": { "en": "Play the tape marked VESPER 7", "tr": "VESPER 7 yazan kaseti çal" },
+          "on_complete": [
+            { "type": "subtitle", "duration": 5.0, "speaker": "TAPE", "text": { "en": "[hiss... a slow, deep pulse, like a heartbeat through water]", "tr": "[cızırtı... yavaş, derin bir nabız, suyun içinden gelen bir kalp atışı gibi]" } },
+            { "type": "subtitle", "delay": 5.5, "duration": 5.0, "speaker": "TAPE", "text": { "en": "[the pulse breaks into many voices, rising and falling together]", "tr": "[nabız birçok sese bölünüyor, birlikte yükselip alçalıyorlar]" } },
+            { "type": "subtitle", "delay": 11.0, "duration": 5.0, "speaker": "TAPE", "text": { "en": "[they go quiet exactly when the lamp's beam would pass]", "tr": "[fenerin huzmesinin geçeceği anda tam olarak susuyorlar]" } },
+            { "type": "subtitle", "delay": 16.5, "duration": 6.0, "text": { "en": "That's not a submarine. That was never a submarine.", "tr": "Bu bir denizaltı değil. Hiçbir zaman denizaltı değildi." } }
+          ] },
+        { "id": "roster", "complete_on": "read:keeper_roster",
+          "text": { "en": "Search the records room", "tr": "Kayıt odasını ara" },
+          "on_complete": [
+            { "type": "subtitle", "delay": 1.0, "duration": 6.0, "text": { "en": "Eleven keepers since 1951. Every one of them marked 'missing'. There's a twelfth line. It's already filled in.", "tr": "1951'den beri on bir bekçi. Hepsinin yanında 'kayıp' yazıyor. On ikinci satır var. Çoktan doldurulmuş." } }
+          ] },
+        { "id": "leave", "complete_on": "use:hatch_up",
+          "text": { "en": "Get out of here", "tr": "Buradan çık" } },
+        { "id": "sleep", "complete_on": "task:sleep",
+          "text": { "en": "Go back to the cottage. Keep the lamp burning.", "tr": "Kulübeye dön. Lamba yanmaya devam etsin." },
+          "on_complete": [
+            { "type": "fade_out", "duration": 2.5 },
+            { "type": "next_night", "delay": 3.5 }
+          ] }
+      ]
+    },
+    {
+      "night": 5,
+      "title": { "en": "The Last Night", "tr": "Son Gece" },
+      "on_start": [
+        { "type": "fade_out", "duration": 0.01 },
+        { "type": "teleport", "arg": "wake_cottage" },
+        { "type": "storm", "arg": "on" },
+        { "type": "fog", "arg": "0.028" },
+        { "type": "ambience", "arg": "wind=2.0" },
+        { "type": "lamp_on" },
+        { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
+        { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Last Night", "tr": "Son Gece" } },
+        { "type": "subtitle", "delay": 5.5, "duration": 5.0, "text": { "en": "The lamp kept burning all day. I didn't light it.", "tr": "Lamba bütün gün yandı. Ben yakmadım." } },
+        { "type": "lamp_off", "delay": 14.0 },
+        { "type": "subtitle", "delay": 15.0, "duration": 5.0, "text": { "en": "...and now it's dying. The lights in the fog are coming closer.", "tr": "...ve şimdi sönüyor. Sisin içindeki ışıklar yaklaşıyor." } },
+        { "type": "show", "arg": "fog_lights", "delay": 15.0 }
+      ],
+      "objectives": [
+        { "id": "lantern", "complete_on": "enter:lantern",
+          "text": { "en": "Get up to the lantern", "tr": "Lamba odasına çık" },
+          "on_complete": [
+            { "type": "subtitle", "delay": 1.0, "duration": 5.0, "speaker": "MARGARET", "text": { "en": "Keeper. Keeper, can you hear me? Whatever he tells you, keep it lit.", "tr": "Bekçi. Bekçi, beni duyuyor musun? O sana ne derse desin, yanık tut." } },
+            { "type": "subtitle", "delay": 7.0, "duration": 6.0, "speaker": "ELIAS", "text": { "en": "She's Ministry. They put you here to feed it the light. Put it out and it ends.", "tr": "O Bakanlık'tan. Seni buraya ona ışık vermen için koydular. Söndür ve bitsin." } },
+            { "type": "subtitle", "delay": 14.0, "duration": 6.0, "speaker": "MARGARET", "text": { "en": "That isn't Elias. Elias has been dead for three weeks. It learned his voice from the tapes.", "tr": "O Elias değil. Elias üç haftadır ölü. Sesini kasetlerden öğrendi." } },
+            { "type": "subtitle", "delay": 21.0, "duration": 6.0, "speaker": "ELIAS", "text": { "en": "I'm on the rocks below you. Look down. Turn it off and I can come home.", "tr": "Tam altındaki kayalıklardayım. Aşağı bak. Söndür, eve gelebileyim." } },
+            { "type": "subtitle", "delay": 28.0, "duration": 5.0, "text": { "en": "Fuel or darkness. Someone has to decide.", "tr": "Yakıt ya da karanlık. Birinin karar vermesi gerek." } }
+          ] },
+        { "id": "choose", "complete_on": "task:keep_light|task:darken",
+          "text": { "en": "Keep the light burning, or put it out", "tr": "Işığı yanık tut ya da söndür" } }
+      ],
+      "events": {
+        "task:keep_light": [
+          { "type": "lamp_on" },
+          { "type": "hide", "arg": "fog_lights", "delay": 3.0 },
+          { "type": "storm", "arg": "off", "delay": 8.0 },
+          { "type": "subtitle", "delay": 4.0, "duration": 5.0, "text": { "en": "The lights in the fog go out, one by one.", "tr": "Sisin içindeki ışıklar teker teker sönüyor." } },
+          { "type": "subtitle", "delay": 11.0, "duration": 6.0, "speaker": "MARGARET", "text": { "en": "...Thank you. Welcome to the service, Keeper.", "tr": "...Teşekkür ederim. Göreve hoş geldin, Bekçi." } },
+          { "type": "ending", "delay": 19.0, "text": { "en": "THE WATCH CONTINUES\n\nThe supply boat came on the thirtieth day.\nYou did not get on it.\n\nIn the keeper's journal, under Elias's last entry, a new line in your handwriting:\n\"Never miss the 3 AM check.\"\n\n\nThe Last Watch\n\nLighthouse model: \"Lighthouse\" by DylanHayes (CC-BY)\nEnvironment and sound: Quixel Megascans, Maarten Hof, BB Arts, DTry, Nimikko,\nTimofei Shukshin, Gregor Quendel, Sound Kajiya\n\nThank you for keeping the light.", "tr": "NÖBET SÜRÜYOR\n\nErzak teknesi otuzuncu gün geldi.\nSen binmedin.\n\nBekçi günlüğünde, Elias'ın son satırının altında, senin el yazınla yeni bir satır:\n\"Saat 3 kontrolünü asla kaçırma.\"\n\n\nThe Last Watch\n\nFener modeli: DylanHayes'in \"Lighthouse\" çalışması (CC-BY)\nOrtam ve ses: Quixel Megascans, Maarten Hof, BB Arts, DTry, Nimikko,\nTimofei Shukshin, Gregor Quendel, Sound Kajiya\n\nIşığı yanık tuttuğun için teşekkürler." } },
+          { "type": "quit", "delay": 60.0 }
+        ],
+        "task:darken": [
+          { "type": "lamp_off" },
+          { "type": "subtitle", "delay": 2.0, "duration": 5.0, "text": { "en": "Dark. Only the storm now. And then, below the storm, the singing.", "tr": "Karanlık. Artık sadece fırtına. Sonra, fırtınanın altında, şarkı." } },
+          { "type": "subtitle", "delay": 8.0, "duration": 5.0, "speaker": "ELIAS", "text": { "en": "Thank you. Thank you. We're coming up now.", "tr": "Teşekkürler. Teşekkürler. Şimdi çıkıyoruz." } },
+          { "type": "subtitle", "delay": 14.0, "duration": 6.0, "speaker": "MARGARET", "text": { "en": "Skerrow, respond... Skerrow? ...Skerrow Rock, respond.", "tr": "Skerrow, cevap ver... Skerrow? ...Skerrow Rock, cevap ver." } },
+          { "type": "ending", "delay": 21.0, "text": { "en": "DARK WATER\n\nThe supply boat found the lamp cold and the cottage empty.\nThe log ended on the fifth night.\n\nThat winter, three ships were lost in the approaches to Skerrow Rock.\nThe Ministry's report blames the weather.\n\n\nThe Last Watch\n\nLighthouse model: \"Lighthouse\" by DylanHayes (CC-BY)\nEnvironment and sound: Quixel Megascans, Maarten Hof, BB Arts, DTry, Nimikko,\nTimofei Shukshin, Gregor Quendel, Sound Kajiya\n\nThe light is out.", "tr": "KARA SULAR\n\nErzak teknesi lambayı soğuk, kulübeyi boş buldu.\nKayıt defteri beşinci gecede bitiyordu.\n\nO kış Skerrow Rock açıklarında üç gemi kayboldu.\nBakanlığın raporu havayı suçluyor.\n\n\nThe Last Watch\n\nFener modeli: DylanHayes'in \"Lighthouse\" çalışması (CC-BY)\nOrtam ve ses: Quixel Megascans, Maarten Hof, BB Arts, DTry, Nimikko,\nTimofei Shukshin, Gregor Quendel, Sound Kajiya\n\nIşık söndü." } },
+          { "type": "quit", "delay": 60.0 }
+        ]
+      }
+    }
+  ]
+}

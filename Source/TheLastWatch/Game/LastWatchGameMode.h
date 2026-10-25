@@ -25,6 +25,9 @@ public:
 
 	ALastWatchGameMode();
 
+	/** Starts the story once the keeper exists */
+	virtual void StartPlay() override;
+
 	int32 GetCurrentNight() const { return CurrentNight; }
 	void SetCurrentNight(int32 Night) { CurrentNight = FMath::Clamp(Night, 1, 5); }
 };

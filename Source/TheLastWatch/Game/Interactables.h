@@ -48,9 +48,14 @@ public:
 	/** Performs the interaction */
 	virtual void Interact(ALastWatchPlayerController* Keeper) {}
 
+	/** Picked up for good; the story leaves it hidden on later nights */
+	bool IsCollected() const { return bCollected; }
+
 protected:
 
 	virtual void BeginPlay() override;
+
+	bool bCollected = false;
 };
 
 /** A journal page or document. Reading it adds it to the keeper's documents. */
@@ -191,7 +196,7 @@ public:
 	void Tune(float Delta);
 
 	/** Called by the keeper when sitting down at / leaving the radio (nullptr) */
-	void SetUser(ALastWatchPlayerController* Keeper) { User = Keeper; }
+	void SetUser(ALastWatchPlayerController* Keeper);
 
 	float GetFrequency() const { return Frequency; }
 

@@ -15,12 +15,128 @@
       ]
     },
     {
+      "id": "standing_orders",
+      "title": { "en": "Northern Lights Board — Standing Orders, Skerrow Rock", "tr": "Kuzey Fenerleri Kurulu — Daimi Talimatlar, Skerrow Rock" },
+      "pages": [
+        {
+          "en": "1. The light shall be exhibited from sunset to sunrise without interruption.\n\n2. Before lighting: fill the reservoir with paraffin from the store, clean the lens of salt, and wind the rotation clockwork to its full weight.\n\n3. The character of the light is ONE WHITE FLASH EVERY FIVE SECONDS. The keeper shall not alter the rotation for any reason.",
+          "tr": "1. Işık gün batımından gün doğumuna kadar kesintisiz gösterilecektir.\n\n2. Yakmadan önce: hazneyi depodaki gazyağıyla doldurun, mercekteki tuzu temizleyin ve dönüş zembereğini sonuna kadar kurun.\n\n3. Işığın karakteri BEŞ SANİYEDE BİR BEYAZ ÇAKMADIR. Bekçi dönüşü hiçbir sebeple değiştirmeyecektir."
+        },
+        {
+          "en": "4. The keeper shall report to Coastguard Station Hale at lighting-up and at 03:00 each night.\n\n5. Should the light fail, it is to be restored before ALL other duties, including the keeper's own safety.\n\n6. Section 7 of these orders is withheld from the keeper on station.\n\n— Issued under authority of the Ministry",
+          "tr": "4. Bekçi her gece lamba yakılırken ve saat 03:00'te Hale Sahil Güvenlik İstasyonu'na rapor verecektir.\n\n5. Işık sönerse, bekçinin kendi güvenliği dahil DİĞER TÜM görevlerden önce yeniden yakılacaktır.\n\n6. Bu talimatın 7. bölümü görevdeki bekçiden saklı tutulur.\n\n— Bakanlık yetkisiyle yayımlanmıştır"
+        }
+      ]
+    },
+    {
+      "id": "weather_log",
+      "title": { "en": "Weather Log, last entries", "tr": "Hava Kayıt Defteri, son kayıtlar" },
+      "pages": [
+        {
+          "en": "11 Oct — Wind NW 5. Sea moderate. Visibility good.\n12 Oct — Wind NW 6. Sea rough. Fog after midnight.\n13 Oct — Wind calm. Sea calm. Fog. Lights at sea, bearing 040, no vessel.\n14 Oct — Calm. Fog. Lights at sea, closer.\n15 Oct — Calm. The sea is not moving at all.\n16 Oct —",
+          "tr": "11 Eki — Rüzgâr KB 5. Deniz orta. Görüş iyi.\n12 Eki — Rüzgâr KB 6. Deniz dalgalı. Gece yarısından sonra sis.\n13 Eki — Rüzgâr yok. Deniz sakin. Sis. Denizde ışıklar, kerteriz 040, gemi yok.\n14 Eki — Sakin. Sis. Denizde ışıklar, daha yakın.\n15 Eki — Sakin. Deniz hiç kıpırdamıyor.\n16 Eki —"
+        }
+      ]
+    },
+    {
       "id": "elias_02",
       "title": { "en": "Torn page", "tr": "Yırtık sayfa" },
       "pages": [
         {
-          "en": "...2340 again tonight. A woman's voice, or something wearing one. Numbers in groups of four.\n\n0318  0318  1140  0007\n\nI wrote them on the wall of the store room so I wouldn't lose them. I think they are times.",
-          "tr": "...bu gece yine 2340. Bir kadın sesi, ya da onu giymiş bir şey. Dörderli gruplar halinde sayılar.\n\n0318  0318  1140  0007\n\nKaybetmemek için depo odasının duvarına yazdım. Bence bunlar saat."
+          "en": "...2340 again tonight. A woman's voice, or something wearing one. Numbers in groups of four.\n\n0318  0318  1140  0007\n\nI wrote them on the wall so I wouldn't lose them. I think they are times.",
+          "tr": "...bu gece yine 2340. Bir kadın sesi, ya da onu giymiş bir şey. Dörderli gruplar halinde sayılar.\n\n0318  0318  1140  0007\n\nKaybetmemek için duvara yazdım. Bence bunlar saat."
+        }
+      ]
+    },
+    {
+      "id": "elias_notebook",
+      "title": { "en": "Elias Marr's notebook", "tr": "Elias Marr'ın not defteri" },
+      "pages": [
+        {
+          "en": "I hid this in the boat because the cottage isn't safe. Things get moved in the cottage.\n\nThe numbers on 2340 are not Russian. I spent nine years on the sets in the Navy. I know a Soviet schedule. This is ours, and it is reading out the lamp.",
+          "tr": "Bunu tekneye sakladım çünkü kulübe güvenli değil. Kulübede eşyaların yeri değişiyor.\n\n2340'taki sayılar Rus değil. Donanmada dokuz yıl telsizlerin başında oturdum. Sovyet yayın çizelgesini tanırım. Bu bizim yayınımız ve lambayı okuyor."
+        },
+        {
+          "en": "There is a hatch at the old post on the north side. The Board said it was a wartime gun position, sealed in '46. It isn't sealed. The key was in Margaret's supply crate, taped under the lid. I don't think she meant me to find it.\n\nM/T-7. If I don't come back, it's yours.",
+          "tr": "Kuzeydeki eski karakolda bir kapak var. Kurul oranın 46'da mühürlenmiş bir savaş dönemi top mevzisi olduğunu söyledi. Mühürlü değil. Anahtar Margaret'in erzak sandığındaydı, kapağın altına bantlanmış. Bulmamı istediğini sanmıyorum.\n\nM/T-7. Geri dönmezsem, artık senin."
+        }
+      ]
+    },
+    {
+      "id": "vesper_memo",
+      "title": { "en": "MEMORANDUM — PROJECT VESPER (SECRET)", "tr": "MUHTIRA — VESPER PROJESİ (GİZLİ)" },
+      "pages": [
+        {
+          "en": "Hydrophone array SKR-1 was installed in 1951 to detect Soviet submarine transits of the northern approaches.\n\nWithin a month the array recorded a repeating low-frequency signal from a depth no submarine can reach. It does not move. It is louder in fog.\n\nThe signal stops completely while the Skerrow light is turning.",
+          "tr": "SKR-1 hidrofon dizisi 1951'de kuzey geçitlerindeki Sovyet denizaltı geçişlerini tespit etmek için kuruldu.\n\nBir ay içinde dizi, hiçbir denizaltının inemeyeceği bir derinlikten gelen, tekrarlanan düşük frekanslı bir sinyal kaydetti. Yer değiştirmiyor. Siste daha güçlü.\n\nSkerrow ışığı dönerken sinyal tamamen kesiliyor."
+        },
+        {
+          "en": "RECOMMENDATION: The light is to be maintained at all costs. Keepers are not to be told why. Hale Station will monitor the keeper and transmit the rotation timings nightly so that any drift can be corrected.\n\nKeepers who learn the purpose of the light are to be considered a risk to it.",
+          "tr": "TAVSİYE: Işık her ne pahasına olursa olsun sürdürülecektir. Bekçilere nedeni söylenmeyecektir. Hale İstasyonu bekçiyi izleyecek ve olası sapmalar düzeltilebilsin diye dönüş zamanlamalarını her gece yayınlayacaktır.\n\nIşığın amacını öğrenen bekçiler ışık için risk olarak değerlendirilecektir."
+        }
+      ]
+    },
+    {
+      "id": "timing_codes",
+      "title": { "en": "Rotation schedule — transmit nightly on 2340", "tr": "Dönüş çizelgesi — her gece 2340'tan yayınlanır" },
+      "pages": [
+        {
+          "en": "0318 — lens bearing check, 03:18\n1140 — clockwork rewind interval, 11 min 40 s\n0007 — permitted drift, 0.07 s per revolution\n\nIF THE LIGHT STOPS FOR MORE THAN 0007 MINUTES, HALE IS TO BE INFORMED IMMEDIATELY.\n\nDo not attempt to contact the keeper about this schedule.",
+          "tr": "0318 — mercek kerteriz kontrolü, 03:18\n1140 — zemberek kurma aralığı, 11 dk 40 sn\n0007 — izin verilen sapma, tur başına 0,07 sn\n\nIŞIK 0007 DAKİKADAN FAZLA DURURSA HALE DERHAL BİLGİLENDİRİLECEKTİR.\n\nBu çizelge hakkında bekçiyle iletişim kurmaya çalışmayın."
+        }
+      ]
+    },
+    {
+      "id": "sonar_report",
+      "title": { "en": "Contact report, 2 November 1958", "tr": "Temas raporu, 2 Kasım 1958" },
+      "pages": [
+        {
+          "en": "Soviet Whiskey-class boat detected entering the northern approaches 01:12. Tracked to 4 nm west of Skerrow.\n\n01:40 lamp failure reported by keeper (D. Achterberg).\n01:43 contact lost. No wreckage recovered.\n01:51 lamp restored.\n\nThe Soviet Navy has never asked about this boat.",
+          "tr": "Sovyet Whiskey sınıfı denizaltı 01:12'de kuzey geçitlerine girerken tespit edildi. Skerrow'un 4 mil batısına kadar takip edildi.\n\n01:40 bekçi (D. Achterberg) lamba arızası bildirdi.\n01:43 temas kesildi. Enkaz bulunamadı.\n01:51 lamba yeniden yakıldı.\n\nSovyet Donanması bu denizaltıyı hiç sormadı."
+        }
+      ]
+    },
+    {
+      "id": "elias_03",
+      "title": { "en": "Page in Elias's handwriting, pinned to the console", "tr": "Konsola iğnelenmiş, Elias'ın el yazısıyla bir sayfa" },
+      "pages": [
+        {
+          "en": "They built a listening post to hear the Russians and heard something else instead. Then they built the light into a fence.\n\nI've listened to the tapes for six nights. It isn't an animal. It answers the lamp. When the beam passes it goes quiet, the way a congregation goes quiet when the priest raises his hand.\n\nI'm going to stop the light. Just for one minute. I have to know what it is.",
+          "tr": "Rusları duymak için bir dinleme istasyonu kurdular, onun yerine başka bir şey duydular. Sonra ışığı bir çite dönüştürdüler.\n\nAltı gecedir kasetleri dinliyorum. Bir hayvan değil. Lambaya cevap veriyor. Huzme geçince susuyor, rahip elini kaldırdığında cemaatin sustuğu gibi.\n\nIşığı durduracağım. Sadece bir dakikalığına. Ne olduğunu bilmem lazım."
+        }
+      ]
+    },
+    {
+      "id": "hale_file",
+      "title": { "en": "Personnel file — HALE STATION", "tr": "Personel dosyası — HALE İSTASYONU" },
+      "pages": [
+        {
+          "en": "Operator: M. Hale (cover name).\nEmployer of record: Coastguard Service.\nActual: Ministry, Section 7.\n\nDuties: maintain contact with the Skerrow keeper; assess the keeper's knowledge of VESPER; ensure continuity of the light.\n\nNote: the operator has requested transfer four times. Request denied. She is the only one the keepers trust.",
+          "tr": "Operatör: M. Hale (kod ad).\nKayıtlı işveren: Sahil Güvenlik.\nGerçek: Bakanlık, 7. Bölüm.\n\nGörevleri: Skerrow bekçisiyle iletişimi sürdürmek; bekçinin VESPER hakkında ne bildiğini değerlendirmek; ışığın sürekliliğini sağlamak.\n\nNot: Operatör dört kez nakil talep etti. Talep reddedildi. Bekçilerin güvendiği tek kişi o."
+        }
+      ]
+    },
+    {
+      "id": "keeper_roster",
+      "title": { "en": "Duty roster, Skerrow Rock 1951 –", "tr": "Görev çizelgesi, Skerrow Rock 1951 –" },
+      "pages": [
+        {
+          "en": "1951  T. Lindqvist ............ missing\n1953  R. Moray ................ missing\n1955  D. Achterberg ........... missing\n1958  J. Calloway ............. missing\n1960  S. Brennan .............. missing\n1963  A. Holt ................. missing\n1965  P. Varga ................ missing\n1968  I. Strand ............... missing\n1970  M. Quayle ............... missing\n1972  H. Okafor ............... missing\n1974  E. Marr ................. missing",
+          "tr": "1951  T. Lindqvist ............ kayıp\n1953  R. Moray ................ kayıp\n1955  D. Achterberg ........... kayıp\n1958  J. Calloway ............. kayıp\n1960  S. Brennan .............. kayıp\n1963  A. Holt ................. kayıp\n1965  P. Varga ................ kayıp\n1968  I. Strand ............... kayıp\n1970  M. Quayle ............... kayıp\n1972  H. Okafor ............... kayıp\n1974  E. Marr ................. kayıp"
+        },
+        {
+          "en": "1974  ......................... missing\n\nThe name has been left blank. The entry has not.",
+          "tr": "1974  ......................... kayıp\n\nİsim boş bırakılmış. Kayıt bırakılmamış."
+        }
+      ]
+    },
+    {
+      "id": "wet_page",
+      "title": { "en": "A sodden page by the bed", "tr": "Yatağın yanında sırılsıklam bir sayfa" },
+      "pages": [
+        {
+          "en": "It is one of Elias's pages. It has been in the sea. Most of the ink is gone.\n\nWhat is left reads:\n\n\"...not a fence. A door. And we have been holding it shut with a candle.\"",
+          "tr": "Elias'ın sayfalarından biri. Denizde kalmış. Mürekkebin çoğu gitmiş.\n\nGeriye kalan:\n\n\"...çit değil. Bir kapı. Ve biz onu bir mumla kapalı tutuyoruz.\""
         }
       ]
     }

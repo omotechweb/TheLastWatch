@@ -1,16 +1,60 @@
 {
-  "_comment": "frequency in kHz. 'nights' limits when a transmission is on air (empty = always). 'loop' repeats after 'loop_gap' seconds.",
+  "_comment": "frequency in kHz. 'nights' limits when a transmission is on air (empty = always). 'loop' repeats after 'loop_gap' seconds. Hearing a transmission to the end reports radio:<id> to the story.",
   "transmissions": [
     {
-      "id": "margaret_test",
+      "id": "margaret_n1",
       "frequency": 2182,
       "nights": [1],
-      "loop": false,
       "lines": [
         { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Skerrow Rock, this is Coastguard Station Hale. Do you read me, Keeper?", "tr": "Skerrow Rock, burası Hale Sahil Güvenlik İstasyonu. Beni duyuyor musun, Bekçi?" } },
         { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Good. The line's clear tonight. That doesn't happen often out there.", "tr": "Güzel. Hat bu gece temiz. Orada pek sık olmaz bu." } },
-        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Lamp lit by sundown, log the weather every hour, and call in at three. Every night.", "tr": "Lamba gün batımında yanacak, hava her saat kaydedilecek ve saat üçte beni arayacaksın. Her gece." } },
-        { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Get some rest when you can. Hale out.", "tr": "Fırsat buldukça dinlen. Hale, tamam." } }
+        { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "I can see your light from here. One flash every five seconds. That's all we ask.", "tr": "Işığını buradan görebiliyorum. Beş saniyede bir çakma. Tek istediğimiz bu." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Call in at three. Every night. If you miss the three o'clock, I'll worry.", "tr": "Saat üçte ara. Her gece. Saat üçü kaçırırsan endişelenirim." } },
+        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Get some rest when you can. Hale out.", "tr": "Fırsat buldukça dinlen. Hale, tamam." } }
+      ]
+    },
+    {
+      "id": "margaret_n2",
+      "frequency": 2182,
+      "nights": [2],
+      "lines": [
+        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Evening, Keeper. Light's looking strong tonight.", "tr": "İyi akşamlar, Bekçi. Işık bu gece güçlü görünüyor." } },
+        { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Lights in the fog? Fishermen out of Lerwick, I expect. They don't log their positions.", "tr": "Sisin içinde ışıklar mı? Lerwick'ten balıkçılardır. Konumlarını bildirmezler." } },
+        { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Elias? ...He was a good keeper. Let's not talk about Elias on an open channel.", "tr": "Elias mı? ...İyi bir bekçiydi. Açık kanalda Elias'tan bahsetmeyelim." } },
+        { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Keep the light turning. Hale out.", "tr": "Işığı döndürmeye devam et. Hale, tamam." } }
+      ]
+    },
+    {
+      "id": "margaret_n3",
+      "frequency": 2182,
+      "nights": [3],
+      "lines": [
+        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "You're late calling in tonight, Keeper.", "tr": "Bu gece aramakta geciktin, Bekçi." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "...You've been on the north side. Don't ask how I know. Please. Just don't go down there again.", "tr": "...Kuzey taraftaydın. Nereden bildiğimi sorma. Lütfen. Sadece oraya bir daha inme." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "I can't tell you what it is. I'm not allowed. But the light works. As long as it turns, you're safe.", "tr": "Ne olduğunu söyleyemem. İznim yok. Ama ışık işe yarıyor. Döndüğü sürece güvendesin." } },
+        { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Three o'clock. Don't miss it. Hale out.", "tr": "Saat üç. Kaçırma. Hale, tamam." } }
+      ]
+    },
+    {
+      "id": "margaret_n4",
+      "frequency": 2182,
+      "nights": [4],
+      "lines": [
+        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Skerrow, Hale. Storm warning, force nine, backing south-west by midnight.", "tr": "Skerrow, Hale. Fırtına uyarısı, kuvvet dokuz, gece yarısına doğru güneybatıya dönüyor." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Listen to me. Tonight you may hear other voices on this set. People you know. People who are gone.", "tr": "Beni dinle. Bu gece bu telsizde başka sesler duyabilirsin. Tanıdığın insanlar. Artık olmayan insanlar." } },
+        { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "None of them are us. Whatever they ask you to do, keep the lamp lit. Hale out.", "tr": "Hiçbiri biz değiliz. Senden ne isterlerse istesinler, lambayı yanık tut. Hale, tamam." } }
+      ]
+    },
+    {
+      "id": "elias_n4",
+      "frequency": 1975,
+      "nights": [4, 5],
+      "lines": [
+        { "speaker": "ELIAS", "duration": 4.0, "text": { "en": "...can you hear me? It's Elias. Elias Marr.", "tr": "...beni duyabiliyor musun? Ben Elias. Elias Marr." } },
+        { "speaker": "ELIAS", "duration": 4.5, "text": { "en": "I didn't fall. I'm alive. I'm out on the rocks, under the light.", "tr": "Düşmedim. Yaşıyorum. Kayalıklardayım, ışığın altında." } },
+        { "speaker": "ELIAS", "duration": 5.0, "text": { "en": "They're lying to you. The Ministry, Margaret, all of them. The light isn't protecting you. It's keeping something prisoner.", "tr": "Sana yalan söylüyorlar. Bakanlık, Margaret, hepsi. Işık seni korumuyor. Bir şeyi tutsak ediyor." } },
+        { "speaker": "ELIAS", "duration": 4.5, "text": { "en": "Turn it off. Tomorrow night, turn it off, and I can come home.", "tr": "Söndür onu. Yarın gece söndür, eve gelebileyim." } },
+        { "speaker": "", "duration": 4.0, "text": { "en": "[...under his voice, very faintly, many others say the same words]", "tr": "[...sesinin altında, çok hafif, başka birçok ses de aynı kelimeleri söylüyor]" } }
       ]
     },
     {

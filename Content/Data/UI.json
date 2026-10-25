@@ -25,6 +25,24 @@
     "inventory.items":    { "en": "ITEMS",                   "tr": "EŞYALAR" },
     "inventory.docs":     { "en": "DOCUMENTS",               "tr": "BELGELER" },
     "inventory.empty":    { "en": "(nothing)",               "tr": "(boş)" },
-    "inventory.hint":     { "en": "[W / S] Select     [E] Read     [Tab] Close", "tr": "[W / S] Seç     [E] Oku     [Tab] Kapat" }
+    "inventory.hint":     { "en": "[W / S] Select     [E] Read     [Tab] Close", "tr": "[W / S] Seç     [E] Oku     [Tab] Kapat" },
+
+    "hud.night":          { "en": "NIGHT {0}",               "tr": "{0}. GECE" },
+
+    "prompt.use":         { "en": "[E] Use",                 "tr": "[E] Kullan" },
+    "prompt.needs":       { "en": "Needs: {0}",              "tr": "Gerekli: {0}" },
+    "prompt.fuel_drum":   { "en": "[E] Fill a can of paraffin", "tr": "[E] Bidonu gazyağıyla doldur" },
+    "prompt.refuel.hold": { "en": "[Hold E] Fill the reservoir", "tr": "[E basılı tut] Hazneyi doldur" },
+    "prompt.clean.hold":  { "en": "[Hold E] Clean the lens", "tr": "[E basılı tut] Merceği temizle" },
+    "prompt.wind.hold":   { "en": "[Hold E] Wind the clockwork", "tr": "[E basılı tut] Zembereği kur" },
+    "prompt.inspect":     { "en": "[E] Inspect the clockwork", "tr": "[E] Zembereği incele" },
+    "prompt.toolbox":     { "en": "[E] Search the tool crate", "tr": "[E] Alet sandığını ara" },
+    "prompt.repair.hold": { "en": "[Hold E] Fit the new cable", "tr": "[E basılı tut] Yeni halatı tak" },
+    "prompt.sleep":       { "en": "[E] Sleep until nightfall", "tr": "[E] Akşama kadar uyu" },
+    "prompt.tape":        { "en": "[E] Play the tape",       "tr": "[E] Kaseti çal" },
+    "prompt.keep_light.hold": { "en": "[Hold E] Keep the light burning", "tr": "[E basılı tut] Işığı yanık tut" },
+    "prompt.darken.hold": { "en": "[Hold E] Put out the light", "tr": "[E basılı tut] Işığı söndür" },
+    "prompt.hatch_down":  { "en": "[E] Climb down",          "tr": "[E] Aşağı in" },
+    "prompt.hatch_up":    { "en": "[E] Climb up the ladder", "tr": "[E] Merdivenden yukarı çık" }
   }
 }

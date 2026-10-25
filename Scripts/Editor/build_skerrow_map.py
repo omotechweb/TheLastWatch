@@ -296,7 +296,7 @@ SHED_YAW = -20.0
 cottage = build_from_parts(cottage_parts, "cottage", COTTAGE_YAW, "Cottage")
 shed = build_from_parts(shed_parts, "shed", SHED_YAW, "Shed")
 replace_doors(cottage, "cottage", "Cottage")
-replace_doors(shed, "shed", "Shed", required_item="key_storeroom")
+replace_doors(shed, "shed", "Shed")
 
 
 def cabin_point(pad, src_long_yaw, extra_yaw, along, across):
@@ -336,10 +336,6 @@ note = actors.spawn_actor_from_class(unreal.NotePickup, V(tx + 20, ty, top_of(ta
 note.set_editor_property("note_id", "elias_01")
 note.set_folder_path("Cottage/Interior")
 
-sx, sy, axis = cabin_point(*C, along=-330.0, across=-150.0)
-key = actors.spawn_actor_from_class(unreal.ItemPickup, V(sx, sy, top_of(shelf) + 1.5), R(axis + 30.0))
-key.set_editor_property("item_id", "key_storeroom")
-key.set_folder_path("Cottage/Interior")
 
 cottage_light = actors.spawn_actor_from_class(unreal.PointLight, V(*cabin_point(*C, along=0.0, across=0.0)[:2], island.pad_height("cottage") + 290))
 cottage_light.point_light_component.set_intensity_units(unreal.LightUnits.LUMENS)
@@ -609,10 +605,235 @@ def ambient(sound_path, location, falloff=None, volume=1.0, label=None):
     return sound
 
 
-ambient("/Game/Procedurally_Generated_Wind/MS_Procedurally_Generated_Wind", V(0, 0, 2000), volume=0.8, label="Wind")
+wind_sound = ambient("/Game/Procedurally_Generated_Wind/MS_Procedurally_Generated_Wind", V(0, 0, 2000), volume=0.8, label="Wind")
+wind_sound.set_editor_property("tags", ["wind"])
 for angle in range(0, 360, 45):
     x, y = island.coast_point(angle, 1.02)
     ambient("/Game/Procedural_Sea_Waves/Metasounds/MS_Seaside", V(x, y, 0), falloff=7000.0, volume=1.2)
+
+# --- story -------------------------------------------------------------------------------------------------------------
+# Everything Content/Data/Nights.json refers to: tasks, trigger volumes, teleport targets, notes,
+# the bunker, the lights at sea, the wet trail and the storm. Ids here must match the JSON.
+
+STORY = "Story"
+
+
+def tag(actor, *names):
+    actor.set_editor_property("tags", list(names))
+    return actor
+
+
+def story_task(task_id, location, size, prompt_key, yaw=0.0, hold=0.0, required="", consume=True, night=None):
+    """Invisible box over a prop the keeper uses; see AStoryTask."""
+    task = actors.spawn_actor_from_class(unreal.StoryTask, location, R(yaw))
+    task.set_editor_property("task_id", task_id)
+    task.set_editor_property("prompt_key", prompt_key)
+    task.set_editor_property("hold_seconds", hold)
+    task.set_editor_property("tint_placeholder", False)
+    if required:
+        task.set_editor_property("required_item", required)
+        task.set_editor_property("consume_item", consume)
+    mesh = task.get_component_by_class(unreal.StaticMeshComponent)
+    mesh.set_relative_scale3d(V(size[0] / 100.0, size[1] / 100.0, size[2] / 100.0))
+    mesh.set_visibility(False)
+    task.set_actor_label("Task_" + task_id + ("_n" + night if night else ""))
+    task.set_folder_path(STORY)
+    if night:
+        tag(task, "night:" + night)
+    return task
+
+
+def story_volume(volume_id, location, extent, yaw=0.0):
+    volume = actors.spawn_actor_from_class(unreal.StoryVolume, location, R(yaw))
+    volume.set_editor_property("volume_id", volume_id)
+    volume.set_editor_property("extent", V(*extent))
+    volume.set_actor_label("Volume_" + volume_id)
+    volume.set_folder_path(STORY)
+    return volume
+
+
+def target(name, location, yaw):
+    point = actors.spawn_actor_from_class(unreal.TargetPoint, location, R(yaw))
+    point.set_actor_label("Target_" + name)
+    point.set_folder_path(STORY)
+    return tag(point, name)
+
+
+def story_note(note_id, location, yaw=0.0, night=None, folder=STORY):
+    note_actor = actors.spawn_actor_from_class(unreal.NotePickup, location, R(yaw))
+    note_actor.set_editor_property("note_id", note_id)
+    note_actor.set_actor_label("Note_" + note_id)
+    note_actor.set_folder_path(folder)
+    if night:
+        tag(note_actor, "night:" + night)
+    return note_actor
+
+
+def teleport_door(door_id, location, target_tag, prompt_key, size, required="", yaw=0.0, mesh_path=None, mesh_scale=None, pitch=0.0):
+    door = actors.spawn_actor_from_class(unreal.TeleportDoor, location, R(yaw, pitch))
+    door.set_editor_property("door_id", door_id)
+    door.set_editor_property("target_tag", target_tag)
+    door.set_editor_property("prompt_key", prompt_key)
+    door.set_editor_property("tint_placeholder", False)
+    if required:
+        door.set_editor_property("required_item", required)
+    mesh = door.get_component_by_class(unreal.StaticMeshComponent)
+    if mesh_path:
+        mesh.set_static_mesh(load(mesh_path))
+        mesh.set_material(0, mesh.static_mesh.get_material(0))
+        mesh.set_relative_scale3d(V(*mesh_scale))
+    else:
+        mesh.set_relative_scale3d(V(size[0] / 100.0, size[1] / 100.0, size[2] / 100.0))
+        mesh.set_visibility(False)
+    door.set_actor_label("Door_" + door_id)
+    door.set_folder_path(STORY)
+    return door
+
+
+def story_light(location, lumens, color, radius, folder):
+    light = actors.spawn_actor_from_class(unreal.PointLight, location)
+    light.point_light_component.set_intensity_units(unreal.LightUnits.LUMENS)
+    light.point_light_component.set_intensity(lumens)
+    light.point_light_component.set_light_color(color)
+    light.point_light_component.set_attenuation_radius(radius)
+    light.set_folder_path(folder)
+    return light
+
+
+# -- the lighthouse: store, lantern and the lamp's three chores
+LANTERN_FLOOR = 1880.0
+story_volume("lighthouse", lighthouse_point(0.0, 0.0, 150.0), (260.0, 260.0, 150.0))
+story_volume("lantern", lighthouse_point(0.0, 0.0, LANTERN_FLOOR + 120.0), (195.0, 195.0, 110.0))
+story_note("standing_orders", lighthouse_point(-215.0, 60.0, 88.0), yaw=LIGHTHOUSE_YAW + 70.0)
+
+drum_x, drum_y = 225.0 * math.cos(math.radians(20.0)), 225.0 * math.sin(math.radians(20.0))
+story_task("fuel_drum", lighthouse_point(drum_x, drum_y, 50.0), (95.0, 95.0, 110.0), "prompt.fuel_drum")
+
+# the lantern floor is only solid opposite the stair hatch (built frame 160..300 degrees)
+def lantern_spot(angle, radius=150.0, z=0.0):
+    return lighthouse_point(radius * math.cos(math.radians(angle)), radius * math.sin(math.radians(angle)), LANTERN_FLOOR + z)
+
+
+place_mesh(PROPS + "Utility_Box_2b", lantern_spot(205.0), yaw=LIGHTHOUSE_YAW + 205.0, folder="Lighthouse/Lantern", label="Reservoir")
+place_mesh(PROPS + "Utility_Box_1b", lantern_spot(265.0), yaw=LIGHTHOUSE_YAW + 265.0, folder="Lighthouse/Lantern", label="Clockwork")
+story_task("refuel", lantern_spot(205.0, z=55.0), (70.0, 70.0, 115.0), "prompt.refuel", yaw=LIGHTHOUSE_YAW, hold=3.0, required="fuel_can")
+for task_id, prompt, hold, required in [("wind", "prompt.wind", 4.0, ""), ("inspect_lamp", "prompt.inspect", 0.0, ""),
+                                        ("repair", "prompt.repair", 4.0, "spare_cable")]:
+    story_task(task_id, lantern_spot(265.0, z=50.0), (75.0, 75.0, 105.0), prompt, yaw=LIGHTHOUSE_YAW, hold=hold, required=required)
+story_task("clean_lens", lighthouse_point(0.0, 0.0, 2310.0), (235.0, 235.0, 235.0), "prompt.clean", hold=2.5)
+# the last night's choice: feed the lamp, or snuff it
+story_task("keep_light", lantern_spot(205.0, z=55.0), (90.0, 90.0, 125.0), "prompt.keep_light", hold=3.0, night="5-5")
+story_task("darken", lighthouse_point(0.0, 0.0, 2310.0), (250.0, 250.0, 250.0), "prompt.darken", hold=3.0, night="5-5")
+
+# -- the cottage: arrival, the bed, the journal, the weather log, and later a sodden page
+cottage_center = cabin_point(*C, along=0.0, across=0.0)
+floor_z = trace_down(cottage_center[0], cottage_center[1], top=island.pad_height("cottage") + 250.0) or island.pad_height("cottage") + 80.0
+story_volume("cottage", V(cottage_center[0], cottage_center[1], floor_z + 140.0), (360.0, 165.0, 140.0), yaw=cottage_center[2])
+target("wake_cottage", V(*cabin_point(*C, along=-60.0, across=40.0)[:2], floor_z + 100.0), cottage_center[2])
+sofa_x, sofa_y, _ = cabin_point(*C, along=-170.0, across=120.0)
+story_task("sleep", V(sofa_x, sofa_y, floor_z + 55.0), (285.0, 125.0, 115.0), "prompt.sleep", yaw=cottage_center[2] + 180.0)
+story_note("weather_log", V(*cabin_point(*C, along=-330.0, across=-150.0)[:2], top_of(shelf) + 1.0), yaw=cottage_center[2] + 20.0)
+story_note("wet_page", V(*cabin_point(*C, along=-40.0, across=95.0)[:2], floor_z + 1.0), yaw=cottage_center[2] - 35.0, night="4-5")
+
+# -- the shed yard tool crate (spare cable, night 2)
+sx, sy, _ = island.PADS["shed"]
+story_task("toolbox", V(sx - 520.0, sy - 480.0, ground(sx - 520.0, sy - 480.0) + 40.0), (115.0, 115.0, 95.0), "prompt.toolbox")
+
+# -- Elias's notebook, hidden in the wreck on the shore (night 2 on)
+story_note("elias_notebook", V(wx, wy, ground(wx, wy) + 45.0), yaw=rng.uniform(0, 360), night="2-5")
+
+# -- the ruin: its hatch leads down to the station
+story_volume("ruin", V(rx, ry, ground(rx, ry) + 250.0), (650.0, 650.0, 400.0))
+hx, hy = rotate(60.0, 140.0, ryaw)
+hatch_z = ground(rx + hx, ry + hy)
+# a rusted steel plate set flat in the ground (the power plant door is an open frame; traces went straight through)
+teleport_door("hatch_down", V(rx + hx, ry + hy, hatch_z + 2.0), "bunker_arrival", "prompt.hatch_down", (0, 0, 0),
+              required="hatch_key", yaw=ryaw, mesh_path=PROPS + "Metal_Sheet_1", mesh_scale=(1.0, 1.0, 1.0))
+target("ruin_arrival", V(rx + hx + 160.0, ry + hy, hatch_z + 110.0), ryaw + 180.0)
+
+# -- the VESPER station, built well above the island (out of the height fog); only the hatch leads here
+BX, BY, BZ = 0.0, 0.0, 30000.0
+BUNKER = "Bunker"
+
+
+def bunker_point(x, y, z=0.0):
+    return V(BX + x, BY + y, BZ + z)
+
+
+for piece in ("Shell", "Floor"):
+    place_mesh("/Game/Bunker/SM_Bunker" + piece, bunker_point(0, 0), folder=BUNKER, label="Bunker" + piece)
+target("bunker_arrival", bunker_point(-80.0, 0.0, 100.0), 0.0)
+place_mesh(RUIN + "Platforms/SM_Stairs_01", bunker_point(-220.0, 0.0, 0.0), yaw=90.0, folder=BUNKER, label="BunkerStairs")
+teleport_door("hatch_up", bunker_point(-255.0, 0.0, 230.0), "ruin_arrival", "prompt.hatch_up", (80.0, 150.0, 140.0))
+
+FLUORESCENT = unreal.LinearColor(0.78, 0.88, 1.0, 1.0)
+for x, y, z, lumens in [(0, 0, 300, 45), (800, 0, 255, 22), (1600, -250, 330, 40), (2050, 200, 330, 40), (2100, 800, 270, 30)]:
+    story_light(bunker_point(x, y, z), lumens, FLUORESCENT, 900.0, BUNKER)
+
+
+def bunker_prop(mesh_path, x, y, yaw=0.0, z=0.0, scale=1.0):
+    return place_mesh(mesh_path, bunker_point(x, y, z), yaw=yaw, scale=scale, folder=BUNKER)
+
+
+RADIO = "/Game/Military_Radio/StaticMesh/"
+for x in (1560.0, 1960.0):
+    desk_actor = bunker_prop(FURN + "SM_Table_02", x, -405.0)
+    top = top_of(desk_actor) - BZ
+    bunker_prop(RADIO + "SM_Ampfilter", x - 50.0, -420.0, yaw=180.0, z=top)
+    bunker_prop(RADIO + "SM_Headphones", x + 50.0, -400.0, yaw=200.0, z=top)
+    bunker_prop(FURN + "SM_Chair_01", x, -300.0, yaw=-90.0)
+bunker_prop(RADIO + "SM_Telephone", 1700.0, -420.0, z=top)
+center_table = bunker_prop(FURN + "SM_Table_01", 1800.0, 150.0, yaw=90.0)
+center_top = top_of(center_table) - BZ
+tape_deck = bunker_prop(RADIO + "SM_Radio", 1800.0, 110.0, yaw=90.0, z=center_top)
+story_task("tape", bunker_point(1800.0, 110.0, center_top + 15.0), (60.0, 60.0, 40.0), "prompt.tape", required="cassette_01", consume=False)
+bunker_prop(FURN + "SM_WoodenShelf_04", 2310.0, -150.0, yaw=90.0)
+bunker_prop(FURN + "SM_WoodenShelf_03", 1340.0, 300.0, yaw=-90.0)
+for x, y, mesh_path in [(150.0, 200.0, PROPS + "Metal_Barrel"), (220.0, 230.0, PROPS + "Metal_Barrel"),
+                        (180.0, -220.0, PROPS + "Cardboard_Box_1"), (2250.0, 400.0, PROPS + "Cardboard_Box_5"),
+                        (1450.0, 420.0, PROPS + "Cardboard_Box_Open_2")]:
+    bunker_prop(mesh_path, x, y, yaw=rng.uniform(0, 360))
+records_table = bunker_prop(FURN + "SM_Table_01", 2100.0, 880.0)
+records_top = top_of(records_table) - BZ
+bunker_prop(FURN + "SM_WoodenShelf_02", 2300.0, 700.0, yaw=90.0)
+
+story_note("vesper_memo", bunker_point(1540.0, -380.0, top + 1.0), yaw=12.0)
+story_note("elias_03", bunker_point(1610.0, -360.0, top + 1.0), yaw=-20.0)
+story_note("timing_codes", bunker_point(1940.0, -370.0, top + 1.0), yaw=5.0)
+story_note("sonar_report", bunker_point(1830.0, 230.0, center_top + 1.0), yaw=80.0)
+story_note("hale_file", bunker_point(2050.0, 880.0, records_top + 1.0), yaw=15.0)
+story_note("keeper_roster", bunker_point(2160.0, 870.0, records_top + 1.0), yaw=-10.0, night="4-5")
+
+# -- lights at sea that should not be there (shown by the story)
+for angle in (25.0, 55.0, 80.0):
+    fx, fy = island.coast_point(angle, 1.75)
+    fog_light = story_light(V(fx, fy, 350.0), 60000.0, unreal.LinearColor(1.0, 0.93, 0.8, 1.0), 3500.0, STORY)
+    fog_light.point_light_component.set_editor_property("volumetric_scattering_intensity", 4.0)
+    fog_light.point_light_component.set_cast_shadows(False)
+    tag(fog_light, "fog_lights", "night:99-99")
+
+# -- night 4: a wet trail up from the sea to the cottage
+LEAK = load("/Game/AbandonedPowerPlant/Assets/Decals/MI_Leak_01")
+trail_from = island.coast_point(140.0, 0.93)
+trail_to = cabin_point(*C, along=380.0, across=-260.0)
+for i in range(18):
+    t = i / 17.0
+    x = trail_from[0] + (trail_to[0] - trail_from[0]) * t + rng.uniform(-40, 40)
+    y = trail_from[1] + (trail_to[1] - trail_from[1]) * t + rng.uniform(-40, 40)
+    decal = actors.spawn_actor_from_class(unreal.DecalActor, V(x, y, ground(x, y) + 20.0), R(rng.uniform(0, 360), -90.0))
+    component = decal.get_component_by_class(unreal.DecalComponent)
+    component.set_decal_material(LEAK)
+    component.set_editor_property("decal_size", V(60.0, 55.0, 32.0))
+    decal.set_folder_path(STORY + "/WetTrail")
+    tag(decal, "night:4-5")
+
+# -- storm (nights 4 and 5)
+storm = actors.spawn_actor_from_class(unreal.StormController, V(0, 0, 3000))
+storm.set_editor_property("thunder", [load("/Game/Thunder_Sounds/CUE/" + name) for name in (
+    "CUE_Thunder_Lightning_I_Without_rain_wind_background_noise_Cue",
+    "CUE_Thunder_Lightning_II_Without_rain_wind_background_noise_Cue",
+    "CUE_Thunder_Lightning_III_Without_rain_wind_background_noise_Cue")])
+storm.set_folder_path(STORY)
 
 # --- world settings, save ------------------------------------------------------------------------------------------------
 

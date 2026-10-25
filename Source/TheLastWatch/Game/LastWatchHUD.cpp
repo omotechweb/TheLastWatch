@@ -13,6 +13,7 @@
 #include "Interactables.h"
 #include "InventoryComponent.h"
 #include "LastWatchPlayerController.h"
+#include "StorySubsystem.h"
 
 namespace HUDStyle
 {
@@ -59,6 +60,158 @@ void ALastWatchHUD::SetSubtitle(const FText& Speaker, const FText& Line)
 {
 	SubtitleSpeaker = Speaker;
 	SubtitleLine = Line;
+}
+
+void ALastWatchHUD::ShowTimedSubtitle(const FText& Speaker, const FText& Line, float Duration)
+{
+	TimedSpeaker = Speaker;
+	TimedLine = Line;
+	TimedUntil = GetWorld()->GetRealTimeSeconds() + Duration;
+}
+
+void ALastWatchHUD::ShowTitleCard(const FText& Text, float Duration)
+{
+	TitleText = Text;
+	TitleStart = GetWorld()->GetRealTimeSeconds();
+	TitleDuration = Duration;
+}
+
+void ALastWatchHUD::FadeTo(float TargetOpacity, float Seconds)
+{
+	FadeTarget = FMath::Clamp(TargetOpacity, 0.0f, 1.0f);
+	FadeSpeed = Seconds > 0.0f ? 1.0f / Seconds : 1000.0f;
+}
+
+void ALastWatchHUD::ShowEnding(const FText& Text)
+{
+	EndingText = Text;
+	bEnding = true;
+	FadeTo(1.0f, 2.0f);
+}
+
+void ALastWatchHUD::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	FadeOpacity = FMath::FInterpConstantTo(FadeOpacity, FadeTarget, DeltaSeconds, FadeSpeed);
+}
+
+float ALastWatchHUD::GetTitleOpacity() const
+{
+	// 1 s fade in, hold, 1.5 s fade out
+	const float Age = GetWorld()->GetRealTimeSeconds() - TitleStart;
+	if (Age < 0.0f || Age > TitleDuration)
+	{
+		return 0.0f;
+	}
+	return FMath::Min3(1.0f, Age, (TitleDuration - Age) / 1.5f);
+}
+
+TSharedRef<SWidget> ALastWatchHUD::BuildStoryOverlay()
+{
+	auto Keeper = [this] { return GetKeeper(); };
+
+	return SNew(SOverlay)
+
+		// current objective, top right
+		+ SOverlay::Slot().HAlign(HAlign_Right).VAlign(VAlign_Top).Padding(0, 40, 48, 0)
+		[
+			SNew(SBox)
+			.MaxDesiredWidth(420.0f)
+			.Visibility_Lambda([this]
+			{
+				const UStorySubsystem* Story = UStorySubsystem::Get(this);
+				const ALastWatchPlayerController* K = GetKeeper();
+				const bool bShow = Story && !Story->GetObjectiveText().IsEmpty() && K && K->GetMode() == EKeeperMode::Explore && !bEnding;
+				return bShow ? EVisibility::HitTestInvisible : EVisibility::Collapsed;
+			})
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right)
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(12, "Bold"))
+					.ColorAndOpacity(FSlateColor(HUDStyle::Amber.CopyWithNewOpacity(0.8f)))
+					.ShadowOffset(FVector2D(1, 1))
+					.Text_Lambda([this]
+					{
+						const UStorySubsystem* Story = UStorySubsystem::Get(this);
+						const UGameDataSubsystem* Data = UGameDataSubsystem::Get(this);
+						return Story && Data ? Data->GetUIText(TEXT("hud.night"), FText::AsNumber(Story->GetNight())) : FText::GetEmpty();
+					})
+				]
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(0, 4, 0, 0)
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(16))
+					.ColorAndOpacity(FSlateColor(HUDStyle::Soft))
+					.ShadowOffset(FVector2D(1, 1))
+					.Justification(ETextJustify::Right)
+					.WrapTextAt(420.0f)
+					.Text_Lambda([this]
+					{
+						const UStorySubsystem* Story = UStorySubsystem::Get(this);
+						return Story ? Story->GetObjectiveText() : FText::GetEmpty();
+					})
+				]
+			]
+		]
+
+		// hold-to-use progress, just under the crosshair
+		+ SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(0, 150, 0, 0)
+		[
+			SNew(SBox)
+			.WidthOverride(220.0f)
+			.HeightOverride(6.0f)
+			.Visibility_Lambda([Keeper] { return Keeper() && Keeper()->GetHoldProgress() > 0.0f ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+			[
+				SNew(SOverlay)
+				+ SOverlay::Slot()
+				[
+					SNew(SBorder).BorderImage(WhiteBrush.Get()).BorderBackgroundColor(FLinearColor(1, 1, 1, 0.15f))
+				]
+				+ SOverlay::Slot().HAlign(HAlign_Left)
+				[
+					SNew(SBox)
+					.WidthOverride_Lambda([Keeper] { return FOptionalSize(220.0f * (Keeper() ? Keeper()->GetHoldProgress() : 0.0f)); })
+					[
+						SNew(SBorder).BorderImage(WhiteBrush.Get()).BorderBackgroundColor(HUDStyle::Amber)
+					]
+				]
+			]
+		]
+
+		// fade to black
+		+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill)
+		[
+			SNew(SBorder)
+			.BorderImage(WhiteBrush.Get())
+			.BorderBackgroundColor_Lambda([this] { return FSlateColor(FLinearColor(0, 0, 0, FadeOpacity)); })
+			.Visibility_Lambda([this] { return FadeOpacity > 0.001f ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+		]
+
+		// night title card
+		+ SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Font(HUDStyle::Font(42, "Bold"))
+			.ShadowOffset(FVector2D(2, 2))
+			.Text_Lambda([this] { return TitleText; })
+			.ColorAndOpacity_Lambda([this] { return FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(GetTitleOpacity())); })
+			.Visibility_Lambda([this] { return GetTitleOpacity() > 0.0f ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+		]
+
+		// ending text
+		+ SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Font(HUDStyle::Font(20))
+			.Justification(ETextJustify::Center)
+			.WrapTextAt(900.0f)
+			.LineHeightPercentage(1.35f)
+			.ColorAndOpacity_Lambda([this] { return FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(FMath::Clamp(FadeOpacity * 1.2f - 0.2f, 0.0f, 1.0f))); })
+			.Text_Lambda([this] { return EndingText; })
+			.Visibility_Lambda([this] { return bEnding ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+		];
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -115,6 +268,12 @@ void ALastWatchHUD::BeginPlay()
 		+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill)
 		[
 			BuildInventory()
+		]
+
+		// objective, fades, title cards and the ending sit above everything else
+		+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill)
+		[
+			BuildStoryOverlay()
 		];
 
 	Viewport->AddViewportWidgetContent(Root.ToSharedRef(), 10);
@@ -183,9 +342,18 @@ TSharedRef<SWidget> ALastWatchHUD::BuildCrosshair()
 
 TSharedRef<SWidget> ALastWatchHUD::BuildSubtitles()
 {
+	// the radio's live subtitle wins over a timed story line
+	auto ShowingRadio = [this] { return !SubtitleLine.IsEmpty(); };
+	auto Line = [this, ShowingRadio]
+	{
+		if (ShowingRadio()) { return SubtitleLine; }
+		return GetWorld()->GetRealTimeSeconds() < TimedUntil ? TimedLine : FText::GetEmpty();
+	};
+	auto Speaker = [this, ShowingRadio] { return ShowingRadio() ? SubtitleSpeaker : TimedSpeaker; };
+
 	return SNew(SBox)
 		.MaxDesiredWidth(1100.0f)
-		.Visibility_Lambda([this] { return SubtitleLine.IsEmpty() ? EVisibility::Collapsed : EVisibility::HitTestInvisible; })
+		.Visibility_Lambda([Line] { return Line().IsEmpty() ? EVisibility::Collapsed : EVisibility::HitTestInvisible; })
 		[
 			SNew(SVerticalBox)
 
@@ -195,8 +363,8 @@ TSharedRef<SWidget> ALastWatchHUD::BuildSubtitles()
 				.Font(HUDStyle::Font(14, "Bold"))
 				.ColorAndOpacity(FSlateColor(HUDStyle::Amber))
 				.ShadowOffset(FVector2D(1, 1))
-				.Text_Lambda([this] { return SubtitleSpeaker; })
-				.Visibility_Lambda([this] { return SubtitleSpeaker.IsEmpty() ? EVisibility::Collapsed : EVisibility::HitTestInvisible; })
+				.Text_Lambda([Speaker] { return Speaker(); })
+				.Visibility_Lambda([Speaker] { return Speaker().IsEmpty() ? EVisibility::Collapsed : EVisibility::HitTestInvisible; })
 			]
 
 			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0, 4, 0, 0)
@@ -207,7 +375,7 @@ TSharedRef<SWidget> ALastWatchHUD::BuildSubtitles()
 				.WrapTextAt(1100.0f)
 				.ShadowOffset(FVector2D(2, 2))
 				.ShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f))
-				.Text_Lambda([this] { return SubtitleLine; })
+				.Text_Lambda([Line] { return Line(); })
 			]
 		];
 }
