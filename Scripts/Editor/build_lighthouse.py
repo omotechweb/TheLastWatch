@@ -90,6 +90,15 @@ def finish(mesh, path, material_path, uv_size=300.0):
     return static_mesh
 
 
+def inner_radius(z):
+    """Radius of the walkable space inside the tower at height z."""
+    if z < CONE_TOP:
+        return BASE_INNER + (SHAFT_INNER - BASE_INNER) * max(0.0, z) / CONE_TOP
+    if z < LANTERN_FLOOR:
+        return SHAFT_INNER
+    return LANTERN_INNER
+
+
 def door_box():
     return solid(lambda m: gs.append_box(m, options(), transform(0.0, DOOR_Y - 60.0, 0.0),
                                          DOOR_HALF_WIDTH * 2.0, 220.0, DOOR_HEIGHT, 0, 0, 0,
@@ -163,8 +172,10 @@ def build_exterior():
         x, y, z = (a.x + b.x + c.x) / 3.0, (a.y + b.y + c.y) / 3.0, (a.z + b.z + c.z) / 3.0
         r = math.hypot(x, y)
         in_plinth = r < BASE_INNER and -50.0 < z < 90.0
-        in_deck = r < LANTERN_INNER and LANTERN_FLOOR - 250.0 < z < LANTERN_GLASS_BOTTOM + 40.0
-        if in_plinth or in_deck:
+        # the model also has floor discs inside the shaft (about 11.5 m and 16 m up) that cut
+        # across the stair; anything inside the walkable shaft below the lens has to go
+        in_shaft = r < inner_radius(z) and 90.0 <= z < LANTERN_GLASS_BOTTOM + 40.0
+        if in_plinth or in_shaft:
             doomed.append(t)
     unreal.GeometryScript_MeshEdits.delete_triangles_from_mesh(
         mesh, first(unreal.GeometryScript_List.convert_array_to_index_list(doomed)))
@@ -267,23 +278,28 @@ def build_floors():
 
     lantern = solid(lambda m: gs.append_cylinder(m, options(), transform(z=LANTERN_FLOOR - 15.0), LANTERN_INNER + 5.0, 15.0,
                                                  48, 0, True, unreal.GeometryScriptPrimitiveOriginMode.BASE))
-    # hatch: open the floor above the last quarter turn of the stair so the keeper can climb through
-    hatch_angle = math.degrees(end) - 40.0
+    # hatch: the keeper (192 cm) needs head room over the last ~10 steps, i.e. the last 140 degrees
+    # of the stair; open the floor over the last 200 degrees with a chain of boxes along the arc
     mid_radius = STAIR_INNER + STAIR_WIDTH * 0.5
-    hx, hy = mid_radius * math.cos(math.radians(hatch_angle)), mid_radius * math.sin(math.radians(hatch_angle))
-    hatch = solid(lambda m: gs.append_box(m, options(), transform(hx, hy, LANTERN_FLOOR - 40.0, yaw=hatch_angle),
-                                          STAIR_WIDTH + 30.0, 230.0, 80.0, 0, 0, 0,
-                                          unreal.GeometryScriptPrimitiveOriginMode.BASE))
-    apply(lantern, hatch, unreal.GeometryScriptBooleanOperation.SUBTRACT)
+    end_degrees = math.degrees(end)
+    angle = end_degrees - 200.0
+    while angle <= end_degrees + 15.0:
+        hx, hy = mid_radius * math.cos(math.radians(angle)), mid_radius * math.sin(math.radians(angle))
+        hatch = solid(lambda m, x=hx, y=hy, a=angle: gs.append_box(
+            m, options(), transform(x, y, LANTERN_FLOOR - 40.0, yaw=a), STAIR_WIDTH + 40.0, 70.0, 80.0, 0, 0, 0,
+            unreal.GeometryScriptPrimitiveOriginMode.BASE))
+        apply(lantern, hatch, unreal.GeometryScriptBooleanOperation.SUBTRACT)
+        angle += 15.0
     unreal.GeometryScript_MeshEdits.append_mesh(mesh, lantern, unreal.Transform())
     finish(mesh, "/Game/Lighthouse/SM_LighthouseFloors", FLOOR_MATERIAL, 250.0)
 
 
-build_simple_material(FLOOR_MATERIAL, TILING + "Wood_Planks_Floor_basecolor", TILING + "Wood_Planks_Floor_normal", 0.8, (0.7, 0.62, 0.55))
-build_simple_material(STAIR_MATERIAL, TILING + "Rust_Generic_BaseColor", TILING + "Rust_Generic_Normal", 0.7, (0.6, 0.6, 0.6))
-build_exterior()
-build_shell()
-build_lantern_glass()
-build_stairs()
-build_floors()
-unreal.log("Lighthouse: %d steps, stair ends at %.0f degrees" % (stair_count(), stair_end_angle() % 360.0))
+if __name__ == "__main__":
+    build_simple_material(FLOOR_MATERIAL, TILING + "Wood_Planks_Floor_basecolor", TILING + "Wood_Planks_Floor_normal", 0.8, (0.7, 0.62, 0.55))
+    build_simple_material(STAIR_MATERIAL, TILING + "Rust_Generic_BaseColor", TILING + "Rust_Generic_Normal", 0.7, (0.6, 0.6, 0.6))
+    build_exterior()
+    build_shell()
+    build_lantern_glass()
+    build_stairs()
+    build_floors()
+    unreal.log("Lighthouse: %d steps, stair ends at %.0f degrees" % (stair_count(), stair_end_angle() % 360.0))

@@ -38,6 +38,11 @@ def R(yaw, pitch=0.0, roll=0.0):
     return unreal.Rotator(roll, pitch, yaw)
 
 
+# grass, shrubs, reeds and pebbles ship with box collision that blocks the keeper where nothing
+# is visible; you walk through them instead
+NO_COLLISION = ("/Foliage/", "River_Stone", "Old_Planks_Plank")
+
+
 def place_mesh(mesh_path, location, yaw=0.0, scale=1.0, folder="Props", label=None, pitch=0.0, roll=0.0):
     actor = actors.spawn_actor_from_class(unreal.StaticMeshActor, location, R(yaw, pitch, roll))
     actor.static_mesh_component.set_static_mesh(load(mesh_path))
@@ -47,6 +52,8 @@ def place_mesh(mesh_path, location, yaw=0.0, scale=1.0, folder="Props", label=No
     actor.set_folder_path(folder)
     if label:
         actor.set_actor_label(label)
+    if any(token in mesh_path for token in NO_COLLISION):
+        actor.static_mesh_component.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
     return actor
 
 
@@ -134,6 +141,16 @@ sea.static_mesh_component.set_material(0, load("/Game/Island/M_Ocean"))
 sea.static_mesh_component.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
 
 CLIFF = "/Game/Imported/Cliffs/SM_HugeNordicCliff"
+
+# collide with the scanned rock itself: its generated convex hull bulges far past the surface,
+# which felt like invisible walls around every outcrop
+# the same goes for the pier, whose simple collision is only its posts: the keeper fell through
+# the deck and got stuck between the posts
+for exact_collision in (CLIFF, "/Game/Modular_Rural_Cabin/Meshes/Props/Pier"):
+    body = load(exact_collision).get_editor_property("body_setup")
+    if body.get_editor_property("collision_trace_flag") != unreal.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE:
+        body.set_editor_property("collision_trace_flag", unreal.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
+        unreal.EditorAssetLibrary.save_asset(exact_collision)
 for ring, (r, z, scale_range, step) in enumerate([(0.98, -350.0, (2.0, 2.7), 9.0), (1.04, -700.0, (2.4, 3.2), 14.0)]):
     angle = rng.uniform(0, step)
     while angle < 360.0:
@@ -169,6 +186,9 @@ for piece in ("Exterior", "Shell", "Stairs", "Floors", "LanternGlass"):
     if piece == "LanternGlass":
         part.set_actor_hidden_in_game(True)  # collision only
         part.static_mesh_component.set_visibility(False)
+    if piece == "Exterior":
+        # looks only; the shell does all the colliding
+        part.static_mesh_component.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
 
 # the lamp sits inside the lens at the centre of the lantern room
 lamp_z = lz + 2312.0
@@ -377,24 +397,16 @@ pier = place_mesh(pier_path, V(pier_center[0], pier_center[1], 130.0 - p_max.z),
 place_mesh("/Game/Modular_Rural_Cabin/Meshes/Props/Wooden_Boat",
            V(pier_center[0] + out_y * 260.0, pier_center[1] - out_x * 260.0, -25.0), yaw=pier_yaw + 8.0, folder="Landing")
 
-# block walking into the water along the cove (the cliffs block everywhere else)
-for a in range(-40, 41, 4):
-    x, y = island.shore_point(island.LANDING_ANGLE + a)
-    wall = place_mesh("/Engine/BasicShapes/Cube", V(x, y, 150), yaw=math.degrees(math.atan2(y, x)),
-                      scale=(0.3, 5.0, 6.0), folder="Landing/Blockers")
-    wall.set_actor_hidden_in_game(True)
-    wall.static_mesh_component.set_visibility(False)
-# leave a gap where the pier meets the shore
-for actor in actors.get_all_level_actors():
-    if actor.get_folder_path() == "Landing/Blockers":
-        loc = actor.get_actor_location()
-        if math.hypot(loc.x - shore_x, loc.y - shore_y) < 750:
-            actor.destroy_actor()
-
-# the boat has just dropped the keeper at the end of the pier
-start_x, start_y = shore_x + out_x * 430.0, shore_y + out_y * 430.0
-start = actors.spawn_actor_from_class(unreal.PlayerStart, V(start_x, start_y, 240.0),
+# the boat has just dropped the keeper at the end of the pier. The pier mesh's pivot is not at its
+# centre, so measure where it actually ended up and stand on its deck, a little in from the sea end
+pier_origin, pier_extent = pier.get_actor_bounds(False)
+reach = abs(pier_extent.x * out_x) + abs(pier_extent.y * out_y)  # half length along the pier
+start_x = pier_origin.x + out_x * (reach - 150.0)
+start_y = pier_origin.y + out_y * (reach - 150.0)
+deck_z = trace_down(start_x, start_y, top=pier_origin.z + pier_extent.z + 50.0)
+start = actors.spawn_actor_from_class(unreal.PlayerStart, V(start_x, start_y, (deck_z or 130.0) + 100.0),
                                       R(math.degrees(math.atan2(-out_y, -out_x))))
+unreal.log("Pier deck at z %s, start %.0f %.0f" % (deck_z, start_x, start_y))
 start.set_actor_label("PlayerStart")
 
 # --- dressing: grass, shrubs, stones on the plateau --------------------------------------------------------------

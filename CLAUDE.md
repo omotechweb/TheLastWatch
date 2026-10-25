@@ -26,7 +26,12 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 - Editör: `C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\Win64\UnrealEditor.exe`
 - Editör Python betiği çalıştır (editör kapalıyken): `powershell -File Scripts/run_python.ps1 Scripts/Editor/<betik>.py` — dosya/doku içe aktaran betikler `-Editor` ister (komut satırı modunda içe aktarma çöker).
 - Ekran görüntüsü al (HUD dahil): `powershell -File Scripts/screenshot.ps1 -Commands "DebugOpenNote elias_01" -Out Saved\Screenshots\x.png` — sonucu Read ile incele. Görsel değişiklikleri böyle doğrula.
+- Gerçek tuş testi: `powershell -File Scripts/test_input.ps1 -Commands "DebugTeleport ..." -Keys "SPACE;WAIT:2;WDOWN;WAIT:10;WUP"` — oyunu açar, oyuncu hazır olunca pencereye tuş mesajı gönderir (SPACE, E, TAB, C, WDOWN/WUP, CTRLDOWN/CTRLUP, WAIT:s). `tlw.LogPawn 1` her kareyi (`Pawn x= y= z= ... crouched=`), basılan tuşları ve **ilerleyemeyince önündeki engeli** (`Blocked by ... (mesh ...)`) log'a yazar. Hareketle ilgili her düzeltmeyi bununla doğrula; ekran görüntüsü yetmez.
 - Loglar: `Saved/Logs/TheLastWatch.log`
+
+## Hareket
+
+Şablon karakter zıplama ve eğilmeyi kapalı getiriyor; `LastWatchPlayerController::OnPossess` açar. Space = zıpla, Ctrl basılı = eğil, C = eğilme aç/kapa. Yürünebilir eğim 50° (`WalkableSlope`). Görünmez duvar şikâyetinde önce eğime bak (`island_shape.height` türevi), sonra `Blocked by` loguna. Çim/çalı/çakıl çarpışmasız; kayalık ve iskele "complex as simple". Fener merdiveni için oyunda `DebugStairHeadroom 200`.
 
 ## Geliştirici konsol komutları (oyunda ` tuşu)
 

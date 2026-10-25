@@ -115,13 +115,14 @@ def base_height(x, y):
     # small bumps so the plateau is not flat
     top += 45.0 * fbm(x / 700.0, y / 700.0, 3, SEED + 5)
 
-    edge_width = lerp(0.10, 0.55, landing)
-    shore = smoothstep(1.0, 1.0 - edge_width, r)
-    # the cove itself sits lower so the walk down is long and gentle
-    top = lerp(top, top * 0.45, landing * smoothstep(0.45, 0.95, r))
-    # shallow water in the cove, so the slope above the waterline stays walkable
-    seabed = lerp(SEABED, -250.0, landing * smoothstep(1.2, 0.95, r))
-    return lerp(seabed, top, shore)
+    # everywhere but the cove: plateau ending in a sheer cliff
+    cliff = lerp(SEABED, top, smoothstep(1.0, 0.9, r))
+
+    # the cove: one long ramp from the plateau down to shallow water. Spread over 60% of the
+    # radius it stays under ~35 degrees; the old version peaked at 45 and stopped the keeper
+    ramp = smoothstep(0.32, 1.02, r)
+    cove = lerp(top, -250.0, ramp)
+    return lerp(cliff, cove, landing)
 
 
 _pad_heights = {}

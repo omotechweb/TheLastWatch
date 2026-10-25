@@ -54,6 +54,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Radio", meta=(Units="kHz"))
 	float TuneWheelStep = 4.0f;
 
+	/** Capsule half height while crouched (standing is 96) */
+	UPROPERTY(EditAnywhere, Category="Movement", meta=(Units="cm"))
+	float CrouchedHalfHeight = 55.0f;
+
+	UPROPERTY(EditAnywhere, Category="Movement", meta=(Units="cm/s"))
+	float CrouchSpeed = 160.0f;
+
+	/** Steepest ground the keeper can walk up, in degrees */
+	UPROPERTY(EditAnywhere, Category="Movement")
+	float WalkableSlope = 50.0f;
+
 	/** Falling below this height (into the sea) puts the keeper back at the player start */
 	UPROPERTY(EditAnywhere, Category="Interaction", meta=(Units="cm"))
 	float RespawnBelowZ = -150.0f;
@@ -108,6 +119,10 @@ public:
 	UFUNCTION(Exec)
 	void DebugDumpLights(float Radius);
 
+	/** Traces up from the middle of every lighthouse stair tread and logs any with less than Height clearance */
+	UFUNCTION(Exec)
+	void DebugStairHeadroom(float Height);
+
 	/** Turns the lighthouse lamp on (1) or off (0) */
 	UFUNCTION(Exec)
 	void DebugLamp(bool bLit);
@@ -128,6 +143,7 @@ protected:
 
 	virtual void SetupInputComponent() override;
 	virtual void OnPossess(APawn* InPawn) override;
+	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
 
 	void SetMode(EKeeperMode NewMode);
 	void UpdateFocus();
@@ -137,6 +153,9 @@ protected:
 	void OnInteract();
 	void OnJumpStarted();
 	void OnJumpCompleted();
+	void OnCrouchHeld();
+	void OnCrouchReleased();
+	void OnCrouchToggle();
 	void OnBack();
 	void OnToggleInventory();
 	void OnPagePrev();
@@ -153,6 +172,8 @@ private:
 
 	UPROPERTY(Transient) TObjectPtr<UInputAction> InteractAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> JumpAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> CrouchHoldAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> CrouchToggleAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> BackAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> InventoryAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> PagePrevAction;
@@ -173,6 +194,7 @@ private:
 
 	EKeeperMode Mode = EKeeperMode::Explore;
 	bool bMovementBlocked = false;
+	float LastBlockReport = 0.0f;
 
 	TWeakObjectPtr<AInteractableActor> Focused;
 	TWeakObjectPtr<ARadioSet> ActiveRadio;

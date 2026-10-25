@@ -7,9 +7,14 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Components/LocalLightComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
 #include "UObject/UObjectIterator.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "HAL/IConsoleManager.h"
 #include "GameFramework/GameModeBase.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
@@ -42,6 +47,11 @@ ALastWatchPlayerController::ALastWatchPlayerController()
 	if (HorrorUIFinder.Succeeded()) { HorrorUIClass = HorrorUIFinder.Class; }
 }
 
+static TAutoConsoleVariable<bool> CVarLogPawn(
+	TEXT("tlw.LogPawn"),
+	false,
+	TEXT("Log the keeper's height, movement mode and crouch state every frame"));
+
 /////////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -65,6 +75,8 @@ void ALastWatchPlayerController::CreateKeeperInput()
 {
 	InteractAction   = MakeAction(this, TEXT("IA_Interact"));
 	JumpAction       = MakeAction(this, TEXT("IA_KeeperJump"));
+	CrouchHoldAction = MakeAction(this, TEXT("IA_CrouchHold"));
+	CrouchToggleAction = MakeAction(this, TEXT("IA_CrouchToggle"));
 	BackAction       = MakeAction(this, TEXT("IA_Back"));
 	InventoryAction  = MakeAction(this, TEXT("IA_Inventory"));
 	PagePrevAction   = MakeAction(this, TEXT("IA_PagePrev"));
@@ -79,6 +91,9 @@ void ALastWatchPlayerController::CreateKeeperInput()
 	ExploreContext->MapKey(InteractAction, EKeys::Gamepad_FaceButton_Bottom);
 	ExploreContext->MapKey(JumpAction, EKeys::SpaceBar);
 	ExploreContext->MapKey(JumpAction, EKeys::Gamepad_FaceButton_Top);
+	ExploreContext->MapKey(CrouchHoldAction, EKeys::LeftControl);
+	ExploreContext->MapKey(CrouchToggleAction, EKeys::C);
+	ExploreContext->MapKey(CrouchToggleAction, EKeys::Gamepad_RightThumbstick);
 	ExploreContext->MapKey(InventoryAction, EKeys::Tab);
 	ExploreContext->MapKey(InventoryAction, EKeys::I);
 	ExploreContext->MapKey(InventoryAction, EKeys::Gamepad_Special_Right);
@@ -128,6 +143,9 @@ void ALastWatchPlayerController::SetupInputComponent()
 		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnInteract);
 		Input->BindAction(JumpAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnJumpStarted);
 		Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &ALastWatchPlayerController::OnJumpCompleted);
+		Input->BindAction(CrouchHoldAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnCrouchHeld);
+		Input->BindAction(CrouchHoldAction, ETriggerEvent::Completed, this, &ALastWatchPlayerController::OnCrouchReleased);
+		Input->BindAction(CrouchToggleAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnCrouchToggle);
 		Input->BindAction(BackAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnBack);
 		Input->BindAction(InventoryAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnToggleInventory);
 		Input->BindAction(PagePrevAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnPagePrev);
@@ -151,10 +169,63 @@ void ALastWatchPlayerController::SetupInputComponent()
 	}
 }
 
+bool ALastWatchPlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+	if (CVarLogPawn.GetValueOnGameThread() && Params.Event == IE_Pressed)
+	{
+		UE_LOG(LogTheLastWatch, Display, TEXT("Key pressed: %s"), *Params.Key.ToString());
+	}
+	return Super::InputKey(Params);
+}
+
 void ALastWatchPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	SetMode(EKeeperMode::Explore);
+
+	// the template horror character ships with jumping and crouching switched off
+	if (ACharacter* KeeperCharacter = Cast<ACharacter>(InPawn))
+	{
+		UCharacterMovementComponent* Movement = KeeperCharacter->GetCharacterMovement();
+		Movement->GetNavAgentPropertiesRef().bCanJump = true;
+		Movement->GetNavAgentPropertiesRef().bCanCrouch = true;
+		Movement->SetCrouchedHalfHeight(CrouchedHalfHeight);
+		Movement->MaxWalkSpeedCrouched = CrouchSpeed;
+
+		// grassy hillsides up to 50 degrees are walkable; the cliffs (about 70) still are not
+		Movement->SetWalkableFloorAngle(WalkableSlope);
+	}
+}
+
+void ALastWatchPlayerController::OnCrouchHeld()
+{
+	if (ACharacter* KeeperCharacter = Cast<ACharacter>(GetPawn()); KeeperCharacter && Mode == EKeeperMode::Explore)
+	{
+		KeeperCharacter->Crouch();
+	}
+}
+
+void ALastWatchPlayerController::OnCrouchReleased()
+{
+	if (ACharacter* KeeperCharacter = Cast<ACharacter>(GetPawn()))
+	{
+		KeeperCharacter->UnCrouch();
+	}
+}
+
+void ALastWatchPlayerController::OnCrouchToggle()
+{
+	if (ACharacter* KeeperCharacter = Cast<ACharacter>(GetPawn()); KeeperCharacter && Mode == EKeeperMode::Explore)
+	{
+		if (KeeperCharacter->bIsCrouched)
+		{
+			KeeperCharacter->UnCrouch();
+		}
+		else
+		{
+			KeeperCharacter->Crouch();
+		}
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -234,6 +305,45 @@ void ALastWatchPlayerController::PlayerTick(float DeltaTime)
 
 	// walked off a cliff or into the sea
 	APawn* KeeperPawn = GetPawn();
+
+	// tlw.LogPawn 1: trace the keeper's movement for automated input tests
+	if (CVarLogPawn.GetValueOnGameThread() && KeeperPawn)
+	{
+		if (const ACharacter* KeeperCharacter = Cast<ACharacter>(KeeperPawn))
+		{
+			UE_LOG(LogTheLastWatch, Display, TEXT("Pawn x=%.1f y=%.1f z=%.1f vz=%.1f mode=%d crouched=%d halfHeight=%.1f"),
+				KeeperPawn->GetActorLocation().X, KeeperPawn->GetActorLocation().Y,
+				KeeperPawn->GetActorLocation().Z, KeeperPawn->GetVelocity().Z,
+				static_cast<int32>(KeeperCharacter->GetCharacterMovement()->MovementMode.GetValue()),
+				KeeperCharacter->bIsCrouched,
+				KeeperCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+
+			// pushing but not moving: report what is in the way, once a second
+			const FVector Push = KeeperCharacter->GetCharacterMovement()->GetCurrentAcceleration().GetSafeNormal2D();
+			const float Now = GetWorld()->GetTimeSeconds();
+			if (!Push.IsNearlyZero() && KeeperPawn->GetVelocity().Size2D() < 5.0f && Now - LastBlockReport > 1.0f)
+			{
+				LastBlockReport = Now;
+				const UCapsuleComponent* Capsule = KeeperCharacter->GetCapsuleComponent();
+				FHitResult Hit;
+				FCollisionQueryParams Params(SCENE_QUERY_STAT(BlockReport), false, KeeperPawn);
+				const FVector From = KeeperPawn->GetActorLocation();
+				if (GetWorld()->SweepSingleByChannel(Hit, From, From + Push * 60.0f, FQuat::Identity, ECC_Pawn,
+					FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight()), Params))
+				{
+					const UStaticMeshComponent* MeshComponent = Cast<UStaticMeshComponent>(Hit.GetComponent());
+					UE_LOG(LogTheLastWatch, Warning, TEXT("Blocked by %s / %s (mesh %s) at %s normal %s"),
+						*GetNameSafe(Hit.GetActor()), *GetNameSafe(Hit.GetComponent()),
+						MeshComponent ? *GetNameSafe(MeshComponent->GetStaticMesh()) : TEXT("-"),
+						*Hit.ImpactPoint.ToString(), *Hit.ImpactNormal.ToString());
+				}
+				else
+				{
+					UE_LOG(LogTheLastWatch, Warning, TEXT("Not moving but nothing ahead (push %s)"), *Push.ToString());
+				}
+			}
+		}
+	}
 	if (KeeperPawn && KeeperPawn->GetActorLocation().Z < RespawnBelowZ)
 	{
 		if (AGameModeBase* GameMode = GetWorld()->GetAuthGameMode())
@@ -302,6 +412,8 @@ void ALastWatchPlayerController::OnInteract()
 void ALastWatchPlayerController::OnJumpStarted()
 {
 	ACharacter* KeeperCharacter = Cast<ACharacter>(GetPawn());
+	UE_LOG(LogTheLastWatch, Display, TEXT("Jump pressed: mode=%d canJump=%d"),
+		static_cast<int32>(Mode), KeeperCharacter ? KeeperCharacter->CanJump() : -1);
 	if (Mode == EKeeperMode::Explore && KeeperCharacter)
 	{
 		// leave the debug fly mode on the first jump
@@ -478,6 +590,49 @@ void ALastWatchPlayerController::DebugDumpLights(float Radius)
 			Light->IndirectLightingIntensity, Light->VolumetricScatteringIntensity,
 			*Light->GetComponentLocation().ToString());
 	}
+}
+
+void ALastWatchPlayerController::DebugStairHeadroom(float Height)
+{
+	// layout from Scripts/Editor/build_lighthouse.py
+	constexpr float StartAngle = 270.0f, StepAngle = 14.0f, StepHeight = 20.0f, MidRadius = 38.0f + 135.0f * 0.5f;
+	constexpr int32 Steps = 94;
+
+	const AActor* Stairs = nullptr;
+	for (TActorIterator<AStaticMeshActor> It(GetWorld()); It; ++It)
+	{
+		const UStaticMesh* StairMesh = It->GetStaticMeshComponent()->GetStaticMesh();
+		if (StairMesh && StairMesh->GetName() == TEXT("SM_LighthouseStairs"))
+		{
+			Stairs = *It;
+		}
+	}
+	if (!Stairs)
+	{
+		UE_LOG(LogTheLastWatch, Warning, TEXT("Headroom: no stairs in this level"));
+		return;
+	}
+
+	const FTransform Frame = Stairs->GetActorTransform();
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(Headroom), true, GetPawn());
+	int32 Blocked = 0, Hits = 0;
+	for (int32 Step = 0; Step < Steps; ++Step)
+	{
+		const float Angle = FMath::DegreesToRadians(StartAngle + StepAngle * (Step + 0.5f));
+		const FVector Tread = Frame.TransformPosition(FVector(MidRadius * FMath::Cos(Angle), MidRadius * FMath::Sin(Angle), StepHeight * (Step + 1)));
+		FHitResult Hit;
+		if (GetWorld()->LineTraceSingleByChannel(Hit, Tread + FVector(0, 0, 2), Tread + FVector(0, 0, Height + 10.0f), ECC_Pawn, Params))
+		{
+			++Hits;
+			if (Hit.ImpactPoint.Z - Tread.Z < Height)
+			{
+				++Blocked;
+				UE_LOG(LogTheLastWatch, Warning, TEXT("Headroom: step %d has %.0f cm (hit %s)"), Step,
+					Hit.ImpactPoint.Z - Tread.Z, *GetNameSafe(Hit.GetActor()));
+			}
+		}
+	}
+	UE_LOG(LogTheLastWatch, Display, TEXT("Headroom: %d of %d steps below %.0f cm (%d traces hit something)"), Blocked, Steps, Height, Hits);
 }
 
 void ALastWatchPlayerController::DebugLamp(bool bLit)
