@@ -43,8 +43,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Lighthouse", meta=(Units="cd"))
 	float BeamIntensity = 400000.0f;
 
+	/** Warm light inside the lantern room. Exposure is set for moonlight, so keep it low */
+	UPROPERTY(EditAnywhere, Category="Lighthouse", meta=(Units="lm"))
+	float GlowIntensity = 8.0f;
+
 	UPROPERTY(EditAnywhere, Category="Lighthouse")
 	bool bLit = true;
+
+	/** Beams start this far from the centre, just outside the lantern glazing; inside it their
+	 *  volumetric scattering would fill the lantern room with glowing fog */
+	static constexpr float LensRadius = 240.0f;
 
 public:
 

@@ -30,7 +30,7 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 
 ## Geliştirici konsol komutları (oyunda ` tuşu)
 
-`DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `DebugTeleport X Y Z Yaw Pitch` (uçma moduna geçer; kamera açısı için), `DebugShotAfter <s>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
+`DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `DebugTeleport X Y Z Yaw Pitch` (uçma moduna geçer; kamera açısı için; bir şeyin içine denk gelirse sessizce başarısız olur ve oyuncu başlangıçta kalır), `DebugLamp 0|1`, `DebugDumpLights <cm>`, `DebugShotAfter <s>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
 
 Ekran görüntüsünde `viewmode unlit` / `viewmode lit_detaillighting` komutları renk mi ışık mı sorunu olduğunu ayırmak için işe yarar.
 
@@ -52,6 +52,10 @@ Harita tamamen betiklerle üretilir; elle düzenleme yapma, betiği değiştirip
 1. `Scripts/Editor/import_assets.py -Editor` — `Imports/unpacked` içindeki fener ve kayalık FBX'lerini içe aktarır, `M_ScanPBR` ana malzemesini kurar.
 2. `Scripts/Editor/build_island_terrain.py -Editor` — `island_shape.py`'deki yükseklik fonksiyonundan arazi mesh'i, toprak yolu maskesi (`T_DirtMask`), `M_IslandGround`, `M_Ocean`.
 3. `Scripts/Editor/build_skerrow_map.py` — haritayı kurar: kayalıklar, deniz, fener+ışık, kulübe ve baraka (kulübe paketinin showcase haritasından kopyalanır, kapılar `KeeperDoor` ile değiştirilir), mobilya, etkileşimli objeler, iskele, gece gökyüzü, sis, sesler.
+
+Fener: `Scripts/Editor/build_lighthouse.py` (2'den sonra, 3'ten önce) — dış modeli 2.2x ölçekler, kapı/kaide/balkon zeminini keser; beton kabuk, 94 basamaklı spiral merdiven, döşemeler ve lamba odası cam çarpışması üretir (`/Game/Lighthouse`). Parçalar aynı çerçevede: orijin = kule tabanı, +Y = kapı.
+
+Işık kuralı: pozlama ay ışığına göre sabit (EV100 -1.9). ~1 lüksü geçen her ışık beyaza patlar; iç mekân lambaları 10–70 lm. Fener huzmeleri hacimsel sisi yaktığı için lamba odasının dışından başlar. C++ aktör bileşen değerlerini Python'dan değiştirme (yeniden kurulumda sıfırlanır), aktöre UPROPERTY ekle. Işık şüphesinde `DebugDumpLights <yarıçap>`.
 
 `island_shape.py` adanın tek kaynağı: boyut, bina yerleri (`PADS`), toprak yol (`PATH`), iniş koyu. Bir şeyin yerini değiştirmek için oradan değiştir, 2 ve 3'ü yeniden çalıştır.
 

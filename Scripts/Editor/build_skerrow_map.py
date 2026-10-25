@@ -152,17 +152,62 @@ for angle in (20.0, 75.0, 140.0, 300.0, 335.0):
 
 # --- lighthouse ------------------------------------------------------------------------------------------
 
-LIGHTHOUSE_SCALE = 2.2
+# the walk-in tower from build_lighthouse.py; its pieces share a frame with +Y = doorway
+LIGHTHOUSE_YAW = 90.0  # doorway faces west, towards the path
 lx, ly, _ = island.PADS["lighthouse"]
-lz = island.pad_height("lighthouse")
-lh_min, lh_max = mesh_bounds("/Game/Imported/Lighthouse/SM_Lighthouse")
-lighthouse = place_mesh("/Game/Imported/Lighthouse/SM_Lighthouse", V(lx, ly, lz - lh_min.z * LIGHTHOUSE_SCALE - 20),
-                        yaw=200.0, scale=LIGHTHOUSE_SCALE, folder="Lighthouse", label="Lighthouse")
-# the lamp sits in the glazed lantern near the top of the model
-lamp_z = lz + (lh_max.z - lh_min.z) * LIGHTHOUSE_SCALE * 0.86
+lz = island.pad_height("lighthouse") - 8.0
+
+
+def lighthouse_point(x, y, z):
+    wx, wy = rotate(x, y, LIGHTHOUSE_YAW)
+    return V(lx + wx, ly + wy, lz + z)
+
+
+for piece in ("Exterior", "Shell", "Stairs", "Floors", "LanternGlass"):
+    part = place_mesh("/Game/Lighthouse/SM_Lighthouse" + piece, V(lx, ly, lz), yaw=LIGHTHOUSE_YAW,
+                      folder="Lighthouse", label="Lighthouse" + piece)
+    if piece == "LanternGlass":
+        part.set_actor_hidden_in_game(True)  # collision only
+        part.static_mesh_component.set_visibility(False)
+
+# the lamp sits inside the lens at the centre of the lantern room
+lamp_z = lz + 2312.0
 beam = actors.spawn_actor_from_class(unreal.LighthouseBeam, V(lx, ly, lamp_z))
 beam.set_actor_label("LighthouseBeam")
 beam.set_folder_path("Lighthouse")
+
+# front door: the cabin pack's plank door stretched to the tower's doorway
+door_mesh = load("/Game/Modular_Rural_Cabin/Meshes/Modular/Door_01")
+tower_door = actors.spawn_actor_from_class(unreal.KeeperDoor, lighthouse_point(-86.0, 332.0, 0.0), R(LIGHTHOUSE_YAW + 90.0))
+tower_door_mesh = tower_door.get_component_by_class(unreal.StaticMeshComponent)
+tower_door_mesh.set_static_mesh(door_mesh)
+tower_door_mesh.set_material(0, door_mesh.get_material(0))
+tower_door_mesh.set_relative_scale3d(V(1.0, 1.8, 1.5))
+tower_door_mesh.set_relative_location(V(0, 0, 103.0 * 1.5), False, False)
+tower_door.set_editor_property("tint_placeholder", False)
+tower_door.set_editor_property("open_yaw", -95.0)  # swings into the tower
+tower_door.set_actor_label("LighthouseDoor")
+tower_door.set_folder_path("Lighthouse")
+
+# ground floor: oil store and the keeper's log desk
+LH_INTERIOR = "Lighthouse/Interior"
+for angle, mesh_path in [(20, "Metal_Barrel"), (38, "Metal_Barrel"), (-20, "Metal_Barrel"), (150, "Wooden_Crate"),
+                         (170, "Cardboard_Box_2"), (200, "Wooden_Crate_1")]:
+    x, y = 225.0 * math.cos(math.radians(angle)), 225.0 * math.sin(math.radians(angle))
+    place_mesh("/Game/Modular_Rural_Cabin/Meshes/Props/" + mesh_path, lighthouse_point(x, y, 2.0),
+               yaw=LIGHTHOUSE_YAW + angle + rng.uniform(-20, 20), folder=LH_INTERIOR)
+place_mesh("/Game/Modular_Rural_Cabin/Meshes/Props/Wooden_Table_Small", lighthouse_point(-215.0, 60.0, 2.0),
+           yaw=LIGHTHOUSE_YAW + 90.0, folder=LH_INTERIOR)
+place_mesh("/Game/OldFurniturePack_01/Meshes/SM_Chair_02", lighthouse_point(-150.0, 120.0, 2.0),
+           yaw=LIGHTHOUSE_YAW + 200.0, folder=LH_INTERIOR)
+
+for height, lumens in [(290.0, 35.0), (1000.0, 18.0), (1650.0, 18.0)]:
+    lamp = actors.spawn_actor_from_class(unreal.PointLight, lighthouse_point(0.0, -150.0, height))
+    lamp.point_light_component.set_intensity_units(unreal.LightUnits.LUMENS)
+    lamp.point_light_component.set_intensity(lumens)
+    lamp.point_light_component.set_light_color(unreal.LinearColor(1.0, 0.62, 0.35, 1.0))
+    lamp.point_light_component.set_attenuation_radius(600.0)
+    lamp.set_folder_path(LH_INTERIOR)
 
 # --- buildings ------------------------------------------------------------------------------------------------
 
@@ -336,14 +381,14 @@ place_mesh("/Game/Modular_Rural_Cabin/Meshes/Props/Wooden_Boat",
 for a in range(-40, 41, 4):
     x, y = island.shore_point(island.LANDING_ANGLE + a)
     wall = place_mesh("/Engine/BasicShapes/Cube", V(x, y, 150), yaw=math.degrees(math.atan2(y, x)),
-                      scale=(0.3, 9.0, 6.0), folder="Landing/Blockers")
+                      scale=(0.3, 5.0, 6.0), folder="Landing/Blockers")
     wall.set_actor_hidden_in_game(True)
     wall.static_mesh_component.set_visibility(False)
 # leave a gap where the pier meets the shore
 for actor in actors.get_all_level_actors():
     if actor.get_folder_path() == "Landing/Blockers":
         loc = actor.get_actor_location()
-        if math.hypot(loc.x - shore_x, loc.y - shore_y) < 300:
+        if math.hypot(loc.x - shore_x, loc.y - shore_y) < 750:
             actor.destroy_actor()
 
 # the boat has just dropped the keeper at the end of the pier
@@ -357,12 +402,14 @@ start.set_actor_label("PlayerStart")
 FOLIAGE = "/Game/Modular_Rural_Cabin/Meshes/Foliage/"
 PROPS = "/Game/Modular_Rural_Cabin/Meshes/Props/"
 scatter = [
-    (FOLIAGE + "Grass_Patch_1", 160, (0.8, 1.4)),
-    (FOLIAGE + "Grass_Patch_2", 120, (0.8, 1.3)),
-    (FOLIAGE + "Grass_Patch_Long", 80, (0.9, 1.4)),
-    (FOLIAGE + "Shrubs_1", 35, (0.7, 1.1)),
-    (PROPS + "Rock_1", 45, (0.8, 2.2)),
-    (PROPS + "River_Stone_Set_1", 25, (1.0, 2.0)),
+    (FOLIAGE + "Grass_Patch_1", 480, (0.8, 1.5)),
+    (FOLIAGE + "Grass_Patch_2", 340, (0.8, 1.4)),
+    (FOLIAGE + "Grass_Patch_Long", 240, (0.9, 1.5)),
+    (FOLIAGE + "Shrubs_1", 110, (0.7, 1.2)),
+    (FOLIAGE + "Shrubs_1_Single", 80, (0.8, 1.3)),
+    (FOLIAGE + "Bush_1", 25, (0.6, 1.0)),
+    (PROPS + "Rock_1", 90, (0.8, 2.5)),
+    (PROPS + "River_Stone_Set_1", 50, (1.0, 2.0)),
 ]
 for mesh_path, count, scale_range in scatter:
     placed = 0
@@ -400,6 +447,91 @@ place_mesh(PROPS + "Metal_Barrel", V(lx - 420, ly - 380, lz), folder="Lighthouse
 place_mesh(PROPS + "Metal_Barrel", V(lx - 360, ly - 450, lz), yaw=40, folder="Lighthouse")
 place_mesh(PROPS + "Antenna", V(island.PADS["shed"][0] + 260, island.PADS["shed"][1] + 260,
                                 island.pad_height("shed")), folder="Shed")
+
+
+def on_ground(mesh_path, x, y, yaw=None, scale=1.0, folder="Dressing", sink=0.0, pitch=0.0, roll=0.0):
+    return place_mesh(mesh_path, V(x, y, ground(x, y) - sink), yaw=rng.uniform(0, 360) if yaw is None else yaw,
+                      scale=scale, folder=folder, pitch=pitch, roll=roll)
+
+
+# rock outcrops: small copies of the scanned cliff breaking up the grass near the edges
+placed = 0
+while placed < 45:
+    x, y = rng.uniform(-island.A, island.A), rng.uniform(-island.B, island.B)
+    r = island.radius(x, y)
+    if not 0.55 < r < 0.86 or island.dirt(x, y) > 0.2 or island.landing_weight(x, y) > 0.3:
+        continue
+    if any(math.hypot(x - px, y - py) < pr + 300 for px, py, pr in island.PADS.values()):
+        continue
+    on_ground(CLIFF, x, y, scale=rng.uniform(0.12, 0.32), sink=rng.uniform(40, 120),
+              pitch=rng.uniform(-10, 10), roll=rng.uniform(-10, 10), folder="Dressing/Outcrops")
+    placed += 1
+
+# power line on wooden poles from the shed to the lighthouse and the cottage
+for (ax, ay), (bx, by) in [((2300.0, -1500.0), (6700.0, 100.0)), ((1400.0, -1300.0), (-1100.0, 1700.0))]:
+    length = math.hypot(bx - ax, by - ay)
+    count = max(2, int(length / 1700.0) + 1)
+    heading = math.degrees(math.atan2(by - ay, bx - ax))
+    for i in range(count):
+        t = i / (count - 1)
+        on_ground(PROPS + "Power_Pole_1", ax + (bx - ax) * t, ay + (by - ay) * t, yaw=heading + 90.0,
+                  sink=30.0, roll=rng.uniform(-3, 3), folder="Dressing/PowerLine")
+
+# keeper's cottage yard: tool shed, outhouse, firewood, odds and ends
+cx, cy, _ = island.PADS["cottage"]
+on_ground(PROPS + "Side_Shed", cx - 900.0, cy + 600.0, yaw=COTTAGE_YAW + 90.0, folder="Cottage/Yard")
+actors.spawn_actor_from_class(unreal.EditorAssetLibrary.load_blueprint_class(PROPS + "Blueprints/Outhouse"),
+                              V(cx + 300.0, cy + 1150.0, ground(cx + 300.0, cy + 1150.0)),
+                              R(COTTAGE_YAW + 180.0)).set_folder_path("Cottage/Yard")
+for mesh_path, dx, dy in [("Tree_Stump_1", -700, 950), ("Axe_1", -690, 950), ("Log_Pile_1", -1100, 250),
+                          ("Log_3", -620, 880), ("Log_5", -760, 1050), ("Wheel_Barrow", -400, 1250),
+                          ("Metal_Bucket", -250, 1100), ("Wooden_Crate", 700, 900), ("Pallet_Broken", 820, 700),
+                          ("Metal_Barrel", 650, 1150), ("Old_Planks_Plank_2", -980, 640)]:
+    x, y = cx + dx, cy + dy
+    z_offset = 85.0 if mesh_path == "Axe_1" else 0.0
+    place_mesh(PROPS + mesh_path, V(x, y, ground(x, y) + z_offset), yaw=rng.uniform(0, 360),
+               folder="Cottage/Yard", pitch=-60.0 if mesh_path == "Axe_1" else 0.0)
+
+# radio shed yard: oil drums, crates, sheet metal, the generator box
+sx, sy, _ = island.PADS["shed"]
+for mesh_path, dx, dy in [("Metal_Barrel", 520, -420), ("Metal_Barrel", 600, -330), ("Metal_Barrel", 470, -300),
+                          ("Wooden_Crate", -520, -480), ("Wooden_Crate_2", -470, -380), ("Cardboard_Box_4", -600, -350),
+                          ("Utility_Box_1a", 480, 150), ("Metal_Sheet_1", -650, 200), ("Pallet", 300, -620)]:
+    on_ground(PROPS + mesh_path, sx + dx, sy + dy, folder="Shed/Yard")
+
+# lighthouse yard
+for mesh_path, dx, dy in [("Wooden_Crate", 450, -600), ("Wooden_Crate_1", 520, -520), ("Pallet", 380, 650),
+                          ("Metal_Sheet_2", 620, 450), ("Metal_Bucket", 300, -700)]:
+    on_ground(PROPS + mesh_path, lx + dx, ly + dy, folder="Lighthouse/Yard")
+
+# the ruin of an older concrete post on the north side - something was here before the lighthouse keepers
+RUIN = "/Game/AbandonedPowerPlant/Assets/"
+rx, ry, ryaw = 1300.0, 3800.0, 25.0
+for mesh_path, along, across, yaw_offset, sink in [
+    ("Walls/SM_Wall_Structure_01", 0.0, 0.0, 0.0, 180.0),
+    ("Walls/SM_Wall_Plain_200", 260.0, 120.0, 90.0, 220.0),
+    ("Walls/SM_Corner_Bare", -170.0, 0.0, 0.0, 150.0),
+    ("Walls/SM_Wall_Window_Small_03", -260.0, 220.0, 90.0, 260.0),
+    ("Rubble/SM_Rubble_04", 60.0, 260.0, 30.0, 10.0),
+    ("Rubble/SM_Rubble_02", -120.0, 360.0, 0.0, 5.0),
+    ("Rubble/SM_Rubble_01", 200.0, -150.0, 70.0, 5.0),
+    ("Doors/SM_Door_Single_01", 120.0, 420.0, 80.0, 0.0),
+]:
+    x, y = rotate(along, across, ryaw)
+    pitch = 85.0 if "Door_Single" in mesh_path else 0.0
+    on_ground(RUIN + mesh_path, rx + x, ry + y, yaw=ryaw + yaw_offset, sink=sink, pitch=pitch, folder="Dressing/Ruin")
+
+# a wreck hauled up on the shore of the cove, reeds where the stream would be
+wx, wy = island.shore_point(island.LANDING_ANGLE + 22.0)
+inland = math.atan2(-wy, -wx)
+wx, wy = wx + math.cos(inland) * 250.0, wy + math.sin(inland) * 250.0
+on_ground(PROPS + "Wooden_Boat", wx, wy, yaw=math.degrees(inland) + 70.0, sink=25.0, roll=18.0, pitch=-6.0, folder="Landing")
+for i in range(16):
+    a = island.LANDING_ANGLE + rng.uniform(-30, 30)
+    sx_, sy_ = island.shore_point(a)
+    d = rng.uniform(120, 500)
+    on_ground(FOLIAGE + rng.choice(["Cat_Tail", "Cat_Tail_2"]), sx_ - math.cos(math.radians(a)) * d,
+              sy_ - math.sin(math.radians(a)) * d, scale=rng.uniform(0.8, 1.2), folder="Landing")
 
 # --- night sky, moon, fog --------------------------------------------------------------------------------------------
 

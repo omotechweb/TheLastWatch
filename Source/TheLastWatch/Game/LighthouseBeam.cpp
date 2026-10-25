@@ -14,19 +14,20 @@ ALighthouseBeam::ALighthouseBeam()
 	Rotor = CreateDefaultSubobject<USceneComponent>(TEXT("Rotor"));
 	Rotor->SetupAttachment(Root);
 
+	// the beams start outside the lantern room (see LensRadius)
 	BeamA = CreateDefaultSubobject<USpotLightComponent>(TEXT("BeamA"));
 	BeamA->SetupAttachment(Rotor);
+	BeamA->SetRelativeLocation(FVector(LensRadius, 0.0f, 0.0f));
 
 	BeamB = CreateDefaultSubobject<USpotLightComponent>(TEXT("BeamB"));
 	BeamB->SetupAttachment(Rotor);
-	BeamB->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
+	BeamB->SetRelativeLocationAndRotation(FVector(-LensRadius, 0.0f, 0.0f), FRotator(0.0f, 180.0f, 0.0f));
 
 	Glow = CreateDefaultSubobject<UPointLightComponent>(TEXT("Glow"));
 	Glow->SetupAttachment(Root);
 	Glow->SetIntensityUnits(ELightUnits::Lumens);
-	Glow->SetIntensity(20000.0f);
 	Glow->SetLightColor(FLinearColor(1.0f, 0.85f, 0.6f));
-	Glow->SetAttenuationRadius(1500.0f);
+	Glow->SetAttenuationRadius(700.0f);
 	Glow->SetCastShadows(false);
 }
 
@@ -42,6 +43,9 @@ void ALighthouseBeam::ConfigureBeam(USpotLightComponent* Beam) const
 
 	// the lantern glass would block shadowed beams; the sweep reads better unshadowed
 	Beam->SetCastShadows(false);
+
+	// no bounce light: Lumen would flood the lantern room from wherever the beam lands
+	Beam->SetIndirectLightingIntensity(0.0f);
 }
 
 void ALighthouseBeam::OnConstruction(const FTransform& Transform)
@@ -49,6 +53,7 @@ void ALighthouseBeam::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 	ConfigureBeam(BeamA);
 	ConfigureBeam(BeamB);
+	Glow->SetIntensity(GlowIntensity);
 	SetLit(bLit);
 }
 

@@ -104,6 +104,14 @@ public:
 	UFUNCTION(Exec)
 	void DebugTeleport(float X, float Y, float Z, float Yaw, float Pitch);
 
+	/** Logs every light within Radius cm of the keeper (intensity, units, position) */
+	UFUNCTION(Exec)
+	void DebugDumpLights(float Radius);
+
+	/** Turns the lighthouse lamp on (1) or off (0) */
+	UFUNCTION(Exec)
+	void DebugLamp(bool bLit);
+
 	/** Takes a screenshot with UI after Seconds, giving textures and shaders time to load */
 	UFUNCTION(Exec)
 	void DebugShotAfter(float Seconds);
@@ -127,6 +135,8 @@ protected:
 
 	// input handlers
 	void OnInteract();
+	void OnJumpStarted();
+	void OnJumpCompleted();
 	void OnBack();
 	void OnToggleInventory();
 	void OnPagePrev();
@@ -142,6 +152,7 @@ private:
 	void CreateKeeperInput();
 
 	UPROPERTY(Transient) TObjectPtr<UInputAction> InteractAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> JumpAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> BackAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> InventoryAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> PagePrevAction;

@@ -6,6 +6,8 @@
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Components/LocalLightComponent.h"
+#include "UObject/UObjectIterator.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
@@ -20,6 +22,7 @@
 #include "InventoryComponent.h"
 #include "LastWatchGameMode.h"
 #include "LastWatchHUD.h"
+#include "LighthouseBeam.h"
 #include "TheLastWatch.h"
 
 ALastWatchPlayerController::ALastWatchPlayerController()
@@ -61,6 +64,7 @@ namespace
 void ALastWatchPlayerController::CreateKeeperInput()
 {
 	InteractAction   = MakeAction(this, TEXT("IA_Interact"));
+	JumpAction       = MakeAction(this, TEXT("IA_KeeperJump"));
 	BackAction       = MakeAction(this, TEXT("IA_Back"));
 	InventoryAction  = MakeAction(this, TEXT("IA_Inventory"));
 	PagePrevAction   = MakeAction(this, TEXT("IA_PagePrev"));
@@ -73,6 +77,8 @@ void ALastWatchPlayerController::CreateKeeperInput()
 	ExploreContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Keeper"));
 	ExploreContext->MapKey(InteractAction, EKeys::E);
 	ExploreContext->MapKey(InteractAction, EKeys::Gamepad_FaceButton_Bottom);
+	ExploreContext->MapKey(JumpAction, EKeys::SpaceBar);
+	ExploreContext->MapKey(JumpAction, EKeys::Gamepad_FaceButton_Top);
 	ExploreContext->MapKey(InventoryAction, EKeys::Tab);
 	ExploreContext->MapKey(InventoryAction, EKeys::I);
 	ExploreContext->MapKey(InventoryAction, EKeys::Gamepad_Special_Right);
@@ -120,6 +126,8 @@ void ALastWatchPlayerController::SetupInputComponent()
 	if (UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnInteract);
+		Input->BindAction(JumpAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnJumpStarted);
+		Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &ALastWatchPlayerController::OnJumpCompleted);
 		Input->BindAction(BackAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnBack);
 		Input->BindAction(InventoryAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnToggleInventory);
 		Input->BindAction(PagePrevAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnPagePrev);
@@ -291,6 +299,28 @@ void ALastWatchPlayerController::OnInteract()
 	}
 }
 
+void ALastWatchPlayerController::OnJumpStarted()
+{
+	ACharacter* KeeperCharacter = Cast<ACharacter>(GetPawn());
+	if (Mode == EKeeperMode::Explore && KeeperCharacter)
+	{
+		// leave the debug fly mode on the first jump
+		if (KeeperCharacter->GetCharacterMovement()->IsFlying())
+		{
+			KeeperCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+		}
+		KeeperCharacter->Jump();
+	}
+}
+
+void ALastWatchPlayerController::OnJumpCompleted()
+{
+	if (ACharacter* KeeperCharacter = Cast<ACharacter>(GetPawn()))
+	{
+		KeeperCharacter->StopJumping();
+	}
+}
+
 void ALastWatchPlayerController::OnBack()
 {
 	if (Mode == EKeeperMode::Reading && bReadingFromInventory)
@@ -421,6 +451,40 @@ void ALastWatchPlayerController::DebugTeleport(float X, float Y, float Z, float 
 		}
 		KeeperPawn->TeleportTo(FVector(X, Y, Z), FRotator(0.0f, Yaw, 0.0f));
 		SetControlRotation(FRotator(Pitch, Yaw, 0.0f));
+	}
+}
+
+void ALastWatchPlayerController::DebugDumpLights(float Radius)
+{
+	const APawn* KeeperPawn = GetPawn();
+	if (!KeeperPawn)
+	{
+		return;
+	}
+	const FVector Center = KeeperPawn->GetActorLocation();
+	UE_LOG(LogTheLastWatch, Display, TEXT("Lights within %.0f of %s:"), Radius, *Center.ToString());
+
+	for (TObjectIterator<ULightComponent> It; It; ++It)
+	{
+		ULightComponent* Light = *It;
+		if (Light->GetWorld() != GetWorld() || FVector::Dist(Light->GetComponentLocation(), Center) > Radius)
+		{
+			continue;
+		}
+		const ULocalLightComponent* Local = Cast<ULocalLightComponent>(Light);
+		UE_LOG(LogTheLastWatch, Display, TEXT("  %s.%s intensity=%.2f units=%d visible=%d indirect=%.2f volumetric=%.2f at %s"),
+			*GetNameSafe(Light->GetOwner()), *Light->GetName(), Light->Intensity,
+			Local ? static_cast<int32>(Local->IntensityUnits) : -1, Light->IsVisible(),
+			Light->IndirectLightingIntensity, Light->VolumetricScatteringIntensity,
+			*Light->GetComponentLocation().ToString());
+	}
+}
+
+void ALastWatchPlayerController::DebugLamp(bool bLit)
+{
+	for (TActorIterator<ALighthouseBeam> It(GetWorld()); It; ++It)
+	{
+		It->SetLit(bLit);
 	}
 }
 
