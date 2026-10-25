@@ -31,6 +31,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Interaction")
 	FLinearColor Color = FLinearColor(0.5f, 0.5f, 0.5f);
 
+	/** Off once a real mesh with its own materials replaces the placeholder cube */
+	UPROPERTY(EditAnywhere, Category="Interaction")
+	bool bTintPlaceholder = true;
+
 public:
 
 	AInteractableActor();
@@ -96,6 +100,10 @@ class THELASTWATCH_API AKeeperDoor : public AInteractableActor
 	GENERATED_BODY()
 
 protected:
+
+	/** Pivot the door panel swings around; the mesh hangs off it */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	TObjectPtr<USceneComponent> Hinge;
 
 	/** Item needed to unlock. None = never locked. */
 	UPROPERTY(EditAnywhere, Category="Door")

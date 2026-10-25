@@ -14,3 +14,18 @@ Saved/
 # Plugin build output
 Plugins/**/Binaries/
 Plugins/**/Intermediate/
+
+# raw downloads, imported into Content/ by Scripts/Editor/import_assets.py
+Imports/
+
+# Third-party Fab packs: free to re-download, listed in CREDITS.md. Not stored in git.
+Content/AbandonedPowerPlant/
+Content/Essential_Foosteps_SK/
+Content/Military_Radio/
+Content/Modular_Rural_Cabin/
+Content/OldFurniturePack_01/
+Content/Procedural_Sea_Waves/
+Content/Procedurally_Generated_Wind/
+Content/Thunder_Sounds/
+Content/__ExternalActors__/Military_Radio/
+Content/__ExternalObjects__/Military_Radio/

@@ -6,10 +6,14 @@
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/GameModeBase.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "UObject/ConstructorHelpers.h"
+#include "FootstepComponent.h"
 #include "GameDataSubsystem.h"
 #include "HorrorUI.h"
 #include "Interactables.h"
@@ -21,6 +25,7 @@
 ALastWatchPlayerController::ALastWatchPlayerController()
 {
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
+	Footsteps = CreateDefaultSubobject<UFootstepComponent>(TEXT("Footsteps"));
 
 	// the template's movement/look/sprint input and sprint meter UI
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultIMC(TEXT("/Game/Input/IMC_Default"));
@@ -218,6 +223,20 @@ void ALastWatchPlayerController::PlayerTick(float DeltaTime)
 	{
 		UpdateFocus();
 	}
+
+	// walked off a cliff or into the sea
+	APawn* KeeperPawn = GetPawn();
+	if (KeeperPawn && KeeperPawn->GetActorLocation().Z < RespawnBelowZ)
+	{
+		if (AGameModeBase* GameMode = GetWorld()->GetAuthGameMode())
+		{
+			if (const AActor* Start = GameMode->FindPlayerStart(this))
+			{
+				KeeperPawn->TeleportTo(Start->GetActorLocation(), Start->GetActorRotation());
+				SetControlRotation(Start->GetActorRotation());
+			}
+		}
+	}
 }
 
 void ALastWatchPlayerController::UpdateFocus()
@@ -389,6 +408,29 @@ void ALastWatchPlayerController::DebugSetNight(int32 Night)
 	{
 		GameMode->SetCurrentNight(Night);
 	}
+}
+
+void ALastWatchPlayerController::DebugTeleport(float X, float Y, float Z, float Yaw, float Pitch)
+{
+	if (APawn* KeeperPawn = GetPawn())
+	{
+		// hover there, so camera shots from the air don't fall before they're taken
+		if (ACharacter* KeeperCharacter = Cast<ACharacter>(KeeperPawn))
+		{
+			KeeperCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+		}
+		KeeperPawn->TeleportTo(FVector(X, Y, Z), FRotator(0.0f, Yaw, 0.0f));
+		SetControlRotation(FRotator(Pitch, Yaw, 0.0f));
+	}
+}
+
+void ALastWatchPlayerController::DebugShotAfter(float Seconds)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]
+	{
+		ConsoleCommand(TEXT("Shot showui"));
+	}), FMath::Max(Seconds, 0.1f), false);
 }
 
 /////////////////////////////////////////////////////////////////////////////

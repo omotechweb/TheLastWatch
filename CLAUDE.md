@@ -24,13 +24,15 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 - Derleme (editör **kapalıyken**): `powershell -File Scripts/build.ps1`
 - Oyunu editörsüz çalıştır: `powershell -File Scripts/play.ps1` (isteğe bağlı `-Map /Game/...`)
 - Editör: `C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\Win64\UnrealEditor.exe`
-- Editör Python betiği çalıştır (editör kapalıyken): `powershell -File Scripts/run_python.ps1 Scripts/Editor/<betik>.py`
+- Editör Python betiği çalıştır (editör kapalıyken): `powershell -File Scripts/run_python.ps1 Scripts/Editor/<betik>.py` — dosya/doku içe aktaran betikler `-Editor` ister (komut satırı modunda içe aktarma çöker).
 - Ekran görüntüsü al (HUD dahil): `powershell -File Scripts/screenshot.ps1 -Commands "DebugOpenNote elias_01" -Out Saved\Screenshots\x.png` — sonucu Read ile incele. Görsel değişiklikleri böyle doğrula.
 - Loglar: `Saved/Logs/TheLastWatch.log`
 
 ## Geliştirici konsol komutları (oyunda ` tuşu)
 
-`DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
+`DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `DebugTeleport X Y Z Yaw Pitch` (uçma moduna geçer; kamera açısı için), `DebugShotAfter <s>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
+
+Ekran görüntüsünde `viewmode unlit` / `viewmode lit_detaillighting` komutları renk mi ışık mı sorunu olduğunu ayırmak için işe yarar.
 
 ## Oyun sistemleri (`Source/TheLastWatch/Game/`)
 
@@ -39,7 +41,25 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 - `LastWatchPlayerController` — odak (line trace), E etkileşimi, modlar (Explore/Reading/Radio/Inventory), girdiler kodda oluşturulur.
 - `LastWatchHUD` — tüm arayüz Slate ile C++'ta.
 - `LastWatchGameMode` — şablonun `BP_HorrorCharacter`'ını kullanır, `CurrentNight` tutar.
-- Test haritası: `/Game/Maps/Dev/L_SystemsTest`, `Scripts/Editor/build_systems_test_map.py` ile üretilir (elle düzenleme; betiği değiştirip yeniden çalıştır).
+- `LighthouseBeam` — dönen iki spot ışık + lamba parıltısı, `SetLit()` ile söner.
+- `FootstepComponent` — ayak altındaki mesh'in asset yoluna göre ayak sesi (kulübe=ahşap, santral=beton, ada=toprak).
+- Test haritası: `/Game/Maps/Dev/L_SystemsTest`, `Scripts/Editor/build_systems_test_map.py` ile üretilir.
+
+## Ada (Skerrow Rock) — `/Game/Maps/L_Skerrow`, varsayılan harita
+
+Harita tamamen betiklerle üretilir; elle düzenleme yapma, betiği değiştirip yeniden çalıştır:
+
+1. `Scripts/Editor/import_assets.py -Editor` — `Imports/unpacked` içindeki fener ve kayalık FBX'lerini içe aktarır, `M_ScanPBR` ana malzemesini kurar.
+2. `Scripts/Editor/build_island_terrain.py -Editor` — `island_shape.py`'deki yükseklik fonksiyonundan arazi mesh'i, toprak yolu maskesi (`T_DirtMask`), `M_IslandGround`, `M_Ocean`.
+3. `Scripts/Editor/build_skerrow_map.py` — haritayı kurar: kayalıklar, deniz, fener+ışık, kulübe ve baraka (kulübe paketinin showcase haritasından kopyalanır, kapılar `KeeperDoor` ile değiştirilir), mobilya, etkileşimli objeler, iskele, gece gökyüzü, sis, sesler.
+
+`island_shape.py` adanın tek kaynağı: boyut, bina yerleri (`PADS`), toprak yol (`PATH`), iniş koyu. Bir şeyin yerini değiştirmek için oradan değiştir, 2 ve 3'ü yeniden çalıştır.
+
+Malzeme betiklerinde: `ComponentMask` kanallarını her zaman `set_mask()` ile açıkça ver (varsayılanlar kapalı değil); GeometryScript köşe renkleri statik mesh'e geçmiyor, maske için doku kullan.
+
+## Üçüncü parti asset'ler
+
+Fab paketleri git'te değil (bkz. `CREDITS.md`). Yeni bir paket eklendiğinde `Scripts/Editor/asset_inventory.py` çalıştır, `Saved/asset_inventory.txt` içinde mesh adları ve boyutları çıkar. Fener modeli CC-BY: jenerikte DylanHayes'e atıf zorunlu.
 
 ## Proje yapısı
 

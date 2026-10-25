@@ -55,9 +55,12 @@ void AInteractableActor::BeginPlay()
 	Super::BeginPlay();
 
 	// tint the placeholder shape so different objects are easy to tell apart
-	if (UMaterialInstanceDynamic* Material = Mesh->CreateDynamicMaterialInstance(0))
+	if (bTintPlaceholder)
 	{
-		Material->SetVectorParameterValue(TEXT("Color"), Color);
+		if (UMaterialInstanceDynamic* Material = Mesh->CreateDynamicMaterialInstance(0))
+		{
+			Material->SetVectorParameterValue(TEXT("Color"), Color);
+		}
 	}
 }
 
@@ -130,7 +133,11 @@ AKeeperDoor::AKeeperDoor()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	// the actor origin is the hinge; the panel extends along +Y
+	Hinge = CreateDefaultSubobject<USceneComponent>(TEXT("Hinge"));
+	Hinge->SetupAttachment(Root);
+	Mesh->SetupAttachment(Hinge);
+
+	// the actor origin is the hinge; the placeholder panel extends along +Y
 	Mesh->SetRelativeLocation(FVector(0.0f, 55.0f, 105.0f));
 	Mesh->SetRelativeScale3D(FVector(0.08f, 1.1f, 2.1f));
 	Color = FLinearColor(0.25f, 0.17f, 0.11f);
@@ -194,8 +201,7 @@ void AKeeperDoor::Tick(float DeltaSeconds)
 
 	// ease in and out so the door doesn't snap
 	const float Yaw = FMath::InterpEaseInOut(0.0f, OpenYaw, SwingAlpha, 2.0f);
-	Mesh->SetRelativeRotation(FRotator(0.0f, Yaw, 0.0f));
-	Mesh->SetRelativeLocation(FRotator(0.0f, Yaw, 0.0f).RotateVector(FVector(0.0f, 55.0f, 0.0f)) + FVector(0.0f, 0.0f, 105.0f));
+	Hinge->SetRelativeRotation(FRotator(0.0f, Yaw, 0.0f));
 
 	if (FMath::IsNearlyEqual(SwingAlpha, Target))
 	{

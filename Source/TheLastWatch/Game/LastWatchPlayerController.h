@@ -11,6 +11,7 @@ class ALastWatchHUD;
 class ARadioSet;
 class UInputAction;
 class UInputMappingContext;
+class UFootstepComponent;
 class UInventoryComponent;
 struct FInputActionValue;
 
@@ -36,6 +37,9 @@ class THELASTWATCH_API ALastWatchPlayerController : public AHorrorPlayerControll
 	UPROPERTY(VisibleAnywhere, Category="Components")
 	TObjectPtr<UInventoryComponent> Inventory;
 
+	UPROPERTY(VisibleAnywhere, Category="Components")
+	TObjectPtr<UFootstepComponent> Footsteps;
+
 protected:
 
 	/** How far the keeper can reach, in cm */
@@ -49,6 +53,10 @@ protected:
 	/** Dial step per mouse wheel notch */
 	UPROPERTY(EditAnywhere, Category="Radio", meta=(Units="kHz"))
 	float TuneWheelStep = 4.0f;
+
+	/** Falling below this height (into the sea) puts the keeper back at the player start */
+	UPROPERTY(EditAnywhere, Category="Interaction", meta=(Units="cm"))
+	float RespawnBelowZ = -150.0f;
 
 public:
 
@@ -91,6 +99,14 @@ public:
 	/** Switches to night 1..5 */
 	UFUNCTION(Exec)
 	void DebugSetNight(int32 Night);
+
+	/** Moves the keeper to X Y Z (cm) looking at Yaw / Pitch (degrees) */
+	UFUNCTION(Exec)
+	void DebugTeleport(float X, float Y, float Z, float Yaw, float Pitch);
+
+	/** Takes a screenshot with UI after Seconds, giving textures and shaders time to load */
+	UFUNCTION(Exec)
+	void DebugShotAfter(float Seconds);
 
 	// state read by the HUD
 	EKeeperMode GetMode() const { return Mode; }
