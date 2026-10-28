@@ -173,6 +173,8 @@ void AKeeperDirector::ResetForNight(int32 Night)
 	bRain = false;
 	SetWatcherLevel(0);
 	SetCrowd(false);
+	LampNeglect = 0.0f;
+	bNeglectWatcher = false;
 	FlickerUntil = -1.0f;
 	UpdateFlicker(0.0f);
 	SetRadio(0.0f, 0.0f, 1.0f);
@@ -228,6 +230,41 @@ void AKeeperDirector::Knock()
 void AKeeperDirector::Click()
 {
 	Synth->Click();
+}
+
+void AKeeperDirector::Chime(int32 Strikes)
+{
+	Synth->Chime(Strikes);
+}
+
+void AKeeperDirector::Toll(int32 Strikes)
+{
+	Synth->Toll(Strikes);
+}
+
+void AKeeperDirector::SetRatchet(float Level)
+{
+	Synth->SetRatchet(Level);
+}
+
+void AKeeperDirector::SetLampNeglect(float Level)
+{
+	LampNeglect = FMath::Clamp(Level, 0.0f, 1.0f);
+
+	// a dead lamp lets it come out; it goes back once the light turns again, unless the story wants it
+	if (LampNeglect >= 1.0f && WatcherLevel == 0)
+	{
+		SetWatcherLevel(1);
+		bNeglectWatcher = true;
+	}
+	else if (LampNeglect < 0.5f && bNeglectWatcher)
+	{
+		bNeglectWatcher = false;
+		if (WatcherLevel == 1)
+		{
+			SetWatcherLevel(0);
+		}
+	}
 }
 
 void AKeeperDirector::Whisper(float Seconds)
@@ -373,7 +410,7 @@ void AKeeperDirector::Tick(float DeltaSeconds)
 
 void AKeeperDirector::UpdateGrade(float DeltaSeconds)
 {
-	Dread = FMath::FInterpConstantTo(Dread, DreadTarget, DeltaSeconds, 0.12f);
+	Dread = FMath::FInterpConstantTo(Dread, FMath::Min(DreadTarget + 0.3f * LampNeglect, 1.0f), DeltaSeconds, 0.12f);
 	Panic = FMath::Max(PanicFloor, Panic - DeltaSeconds * 0.14f);
 
 	FPostProcessSettings& S = Grade->Settings;

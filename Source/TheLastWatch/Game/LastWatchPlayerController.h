@@ -222,6 +222,22 @@ public:
 	UFUNCTION(Exec)
 	void DebugWatcher(float Distance);
 
+	/** Runs a console command Seconds from now, for scripted tests: DebugAfter 5 DebugLampState 0 1 */
+	UFUNCTION(Exec)
+	void DebugAfter(float Seconds, const FString& Command);
+
+	/** Answers the radio call with reply 1..3, as the number keys do */
+	UFUNCTION(Exec)
+	void DebugRadioAnswer(int32 Choice);
+
+	/** Sets the lamp's clockwork and paraffin (0..1): DebugLampState 0.25 1 makes the beam start slowing */
+	UFUNCTION(Exec)
+	void DebugLampState(float Tension, float Fuel);
+
+	/** Moves the keeper's watch to HH:MM, e.g. DebugClock 03:00 strikes three */
+	UFUNCTION(Exec)
+	void DebugClock(const FString& Time);
+
 	/** Opens a menu page without input: title, pause, settings, chapters */
 	UFUNCTION(Exec)
 	void DebugMenu(const FString& Page);
@@ -266,6 +282,7 @@ protected:
 	void OnPause();
 	void OnMenuConfirm();
 	void OnFlashlight();
+	void OnCheckWatch();
 
 	void SetMenuPage(EMenuPage Page);
 	void ShowCursor(bool bShow);
@@ -291,6 +308,7 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UInputAction> PauseAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> MenuConfirmAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> FlashlightAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> WatchAction;
 
 	/** When stamina was last below full; the sprint meter hides a moment after it refills */
 	float LastSprintUse = -100.0f;

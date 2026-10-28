@@ -63,14 +63,42 @@ void ALighthouseBeam::Tick(float DeltaSeconds)
 
 	if (bLit)
 	{
-		Rotor->AddRelativeRotation(FRotator(0.0f, RotationSpeed * DeltaSeconds, 0.0f));
+		Rotor->AddRelativeRotation(FRotator(0.0f, RotationSpeed * Drive * DeltaSeconds, 0.0f));
 	}
 }
 
 void ALighthouseBeam::SetLit(bool bValue)
 {
 	bLit = bValue;
-	BeamA->SetVisibility(bLit);
-	BeamB->SetVisibility(bLit);
-	Glow->SetVisibility(bLit);
+
+	// a freshly lit lamp is full and wound
+	Drive = 1.0f;
+	Power = 1.0f;
+	ApplyPower();
+}
+
+void ALighthouseBeam::SetCondition(float InDrive, float InPower)
+{
+	Drive = FMath::Clamp(InDrive, 0.0f, 1.0f);
+	const float NewPower = FMath::Clamp(InPower, 0.0f, 1.0f);
+	// small changes are skipped to spare render updates, but out and full always land exactly
+	if (NewPower != Power && (NewPower == 0.0f || NewPower == 1.0f || !FMath::IsNearlyEqual(NewPower, Power, 0.005f)))
+	{
+		Power = NewPower;
+		ApplyPower();
+	}
+}
+
+void ALighthouseBeam::ApplyPower()
+{
+	const bool bShining = bLit && Power > 0.0f;
+	BeamA->SetVisibility(bShining);
+	BeamB->SetVisibility(bShining);
+	Glow->SetVisibility(bShining);
+	if (bShining)
+	{
+		BeamA->SetIntensity(BeamIntensity * Power);
+		BeamB->SetIntensity(BeamIntensity * Power);
+		Glow->SetIntensity(GlowIntensity * Power);
+	}
 }

@@ -17,6 +17,7 @@
 #include "KeeperSaveSubsystem.h"
 #include "LastWatchPlayerController.h"
 #include "StorySubsystem.h"
+#include "WatchSubsystem.h"
 
 namespace HUDStyle
 {
@@ -26,6 +27,7 @@ namespace HUDStyle
 	const FLinearColor Amber(1.0f, 0.72f, 0.35f);
 	const FLinearColor Soft(0.85f, 0.85f, 0.82f);
 	const FLinearColor RadioPanel(0.03f, 0.05f, 0.04f, 0.88f);
+	const FLinearColor Warning(0.95f, 0.45f, 0.35f);
 
 	// paper is 720 wide with 64 padding on each side; fixed wrapping avoids
 	// a one-frame layout lag when the text changes
@@ -130,6 +132,14 @@ void ALastWatchHUD::Tick(float DeltaSeconds)
 			ObjectiveChangedTime = GetWorld()->GetRealTimeSeconds();
 		}
 	}
+}
+
+float ALastWatchHUD::GetWatchAlpha() const
+{
+	const UWatchSubsystem* Watch = UWatchSubsystem::Get(this);
+	const ALastWatchPlayerController* Keeper = GetKeeper();
+	const bool bCanShow = Keeper && !bEnding && (Keeper->GetMode() == EKeeperMode::Explore || Keeper->GetMode() == EKeeperMode::Radio);
+	return Watch && bCanShow ? Watch->GetWatchAlpha() : 0.0f;
 }
 
 float ALastWatchHUD::GetTitleOpacity() const
@@ -268,6 +278,50 @@ TSharedRef<SWidget> ALastWatchHUD::BuildStoryOverlay()
 				return FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(0.7f * FMath::Clamp(Age - 8.0f, 0.0f, 1.0f)));
 			})
 			.Visibility_Lambda([Keeper] { return Keeper() && Keeper()->IsInMenu(EMenuPage::Ending) ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+		]
+
+		// the keeper's watch, bottom left: the time and how the lamp is doing
+		+ SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Bottom).Padding(48, 0, 0, 44)
+		[
+			SNew(SBorder)
+			.BorderImage(WhiteBrush.Get())
+			.Padding(FMargin(20, 12, 24, 14))
+			.BorderBackgroundColor_Lambda([this] { return FSlateColor(FLinearColor(0, 0, 0, 0.55f * GetWatchAlpha())); })
+			.Visibility_Lambda([this] { return GetWatchAlpha() > 0.0f ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot().AutoHeight()
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(30, "Bold"))
+					.ShadowOffset(FVector2D(1, 1))
+					.ColorAndOpacity_Lambda([this] { return FSlateColor(HUDStyle::Amber.CopyWithNewOpacity(GetWatchAlpha())); })
+					.Text_Lambda([this]
+					{
+						const UWatchSubsystem* Watch = UWatchSubsystem::Get(this);
+						return Watch ? Watch->GetClockText() : FText::GetEmpty();
+					})
+				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(0, 2, 0, 0)
+				[
+					SNew(STextBlock)
+					.Font(HUDStyle::Font(14))
+					.ShadowOffset(FVector2D(1, 1))
+					.ColorAndOpacity_Lambda([this]
+					{
+						// trouble with the lamp reads in red
+						const UWatchSubsystem* Watch = UWatchSubsystem::Get(this);
+						const ELampState State = Watch ? Watch->GetLampState() : ELampState::Cold;
+						const bool bTrouble = State != ELampState::Cold && State != ELampState::Steady;
+						return FSlateColor((bTrouble ? HUDStyle::Warning : HUDStyle::Soft).CopyWithNewOpacity(GetWatchAlpha()));
+					})
+					.Text_Lambda([this]
+					{
+						const UWatchSubsystem* Watch = UWatchSubsystem::Get(this);
+						return Watch ? Watch->GetLampText() : FText::GetEmpty();
+					})
+				]
+			]
 		]
 
 		// autosave note, bottom right
@@ -766,6 +820,23 @@ TSharedRef<SWidget> ALastWatchHUD::BuildRadio()
 				.Text_Lambda([this] { return GetRadioSignal(); })
 			]
 
+			// the call is waiting for an answer
+			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Left).Padding(0, 14, 0, 0)
+			[
+				SNew(STextBlock)
+				.Font(HUDStyle::Font(17))
+				.ColorAndOpacity_Lambda([this]
+				{
+					// a slow pulse so the waiting line is noticed
+					const float Pulse = 0.8f + 0.2f * FMath::Sin(GetWorld()->GetRealTimeSeconds() * 3.0f);
+					return FSlateColor(HUDStyle::Soft.CopyWithNewOpacity(Pulse));
+				})
+				.LineHeightPercentage(1.35f)
+				.WrapTextAt(720.0f)
+				.Text_Lambda([this] { return GetRadioChoices(); })
+				.Visibility_Lambda([this] { return GetRadioChoices().IsEmpty() ? EVisibility::Collapsed : EVisibility::HitTestInvisible; })
+			]
+
 			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0, 12, 0, 0)
 			[
 				SNew(STextBlock)
@@ -894,6 +965,24 @@ FText ALastWatchHUD::GetRadioFrequency() const
 		return FText::GetEmpty();
 	}
 	return FText::FromString(FString::Printf(TEXT("%04d kHz"), FMath::RoundToInt(Radio->GetFrequency())));
+}
+
+FText ALastWatchHUD::GetRadioChoices() const
+{
+	const ALastWatchPlayerController* Keeper = GetKeeper();
+	const ARadioSet* Radio = Keeper ? Keeper->GetActiveRadio() : nullptr;
+	const TArray<FRadioChoice>* Choices = Radio ? Radio->GetPendingChoices() : nullptr;
+	if (!Choices)
+	{
+		return FText::GetEmpty();
+	}
+
+	FString Lines = UIText(TEXT("radio.answer")).ToString();
+	for (int32 Index = 0; Index < Choices->Num() && Index < 3; ++Index)
+	{
+		Lines += FString::Printf(TEXT("\n[%d]  %s"), Index + 1, *(*Choices)[Index].Text.Get().ToString());
+	}
+	return FText::FromString(Lines);
 }
 
 FText ALastWatchHUD::GetRadioSignal() const

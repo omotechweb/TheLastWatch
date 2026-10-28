@@ -40,6 +40,14 @@ struct FRadioLine
 	float Duration = 3.0f;
 };
 
+/** Something the keeper can say back during a call; Margaret (or whoever) answers with Reply */
+struct FRadioChoice
+{
+	FName Id;
+	FLocString Text;
+	TArray<FRadioLine> Reply;
+};
+
 struct FRadioTransmission
 {
 	FName Id;
@@ -51,6 +59,9 @@ struct FRadioTransmission
 	bool bLoop = false;
 	float LoopGap = 2.0f;
 	TArray<FRadioLine> Lines;
+
+	/** Replies offered once the line with this index has been heard (see "choices" in Radio.json) */
+	TMap<int32, TArray<FRadioChoice>> Choices;
 
 	bool IsOnAir(int32 Night) const { return Nights.Num() == 0 || Nights.Contains(Night); }
 };
@@ -76,6 +87,9 @@ struct FObjective
 	/** Event that completes it: read:<note> take:<item> task:<id> enter:<volume> radio:<transmission> use:<door> delay:<seconds> */
 	FString CompleteOn;
 
+	/** Time on the keeper's watch when this step starts, in minutes after noon (see UWatchSubsystem); -1 = in between its neighbours */
+	int32 Clock = -1;
+
 	TArray<FStoryAction> OnStart;
 	TArray<FStoryAction> OnComplete;
 };
@@ -86,6 +100,10 @@ struct FNightData
 	FLocString Title;
 	TArray<FStoryAction> OnStart;
 	TArray<FObjective> Objectives;
+
+	/** The watch at dusk and at dawn, in minutes after noon (21:30 = 570, 05:40 = 1060) */
+	int32 ClockStart = 570;
+	int32 ClockEnd = 1060;
 
 	/** Actions for an event whenever it happens this night, objective or not (e.g. the final choice) */
 	TMap<FString, TArray<FStoryAction>> Events;
@@ -125,6 +143,10 @@ private:
 	static FLocString ParseLoc(const TSharedPtr<FJsonObject>& Object, const FString& Field);
 	static FLocString ParseLocValue(const TSharedPtr<FJsonValue>& Value);
 	static TArray<FStoryAction> ParseActions(const TSharedPtr<FJsonObject>& Object, const FString& Field);
+	static FRadioLine ParseRadioLine(const TSharedPtr<FJsonObject>& Object);
+
+	/** "HH:MM" as minutes after noon (so a night runs upwards past midnight); Fallback when missing or malformed */
+	static int32 ParseClock(const TSharedPtr<FJsonObject>& Object, const FString& Field, int32 Fallback);
 
 	TArray<FNightData> Nights;
 	TMap<FName, FNoteData> Notes;

@@ -118,6 +118,13 @@ public:
 	void Sting(float Strength = 1.0f);
 	void Knock();
 	void Click();
+	void Chime(int32 Strikes);
+	void Toll(int32 Strikes);
+	void SetRatchet(float Level);
+
+	/** How badly the lamp is being kept (UWatchSubsystem): 0 fine, 1 stopped or out. Adds dread, and a
+	 *  stopped lamp lets the Watcher out even on nights the story keeps it away */
+	void SetLampNeglect(float Level);
 
 	/** Lights near the keeper stutter for a while */
 	void Flicker(float Seconds);
@@ -184,6 +191,10 @@ private:
 	TArray<FTransform> DropTransforms;
 
 	int32 WatcherLevel = 0;
+
+	/** Lamp neglect on top of the story's dread, and whether it raised the watcher level itself */
+	float LampNeglect = 0.0f;
+	bool bNeglectWatcher = false;
 	float WatcherCountdown = 0.0f;
 
 	UPROPERTY(Transient)

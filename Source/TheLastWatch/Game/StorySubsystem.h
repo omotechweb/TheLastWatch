@@ -48,6 +48,14 @@ public:
 	FText GetObjectiveText() const;
 	bool HasEnded() const { return bEnded; }
 
+	/** Index of the current objective in tonight's list (INDEX_NONE before the first) */
+	int32 GetObjectiveIndex() const { return ObjectiveIndex; }
+
+	/** Changes every time a night starts, including a restart of the same night */
+	int32 GetGeneration() const { return Generation; }
+
+	const FNightData* GetNightData() const;
+
 	/** Debug: the current objective id */
 	FString GetObjectiveId() const;
 
@@ -59,7 +67,6 @@ public:
 
 private:
 
-	const FNightData* GetNightData() const;
 	const FObjective* GetObjective() const;
 
 	void StartObjective(int32 Index);

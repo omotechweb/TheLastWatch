@@ -123,6 +123,31 @@ TArray<FStoryAction> UGameDataSubsystem::ParseActions(const TSharedPtr<FJsonObje
 	return Actions;
 }
 
+FRadioLine UGameDataSubsystem::ParseRadioLine(const TSharedPtr<FJsonObject>& Object)
+{
+	FRadioLine Line;
+	Object->TryGetStringField(TEXT("speaker"), Line.Speaker);
+	Line.Text = ParseLoc(Object, TEXT("text"));
+
+	double Duration = Line.Duration;
+	Object->TryGetNumberField(TEXT("duration"), Duration);
+	Line.Duration = Duration;
+	return Line;
+}
+
+int32 UGameDataSubsystem::ParseClock(const TSharedPtr<FJsonObject>& Object, const FString& Field, int32 Fallback)
+{
+	FString Value, Hours, Minutes;
+	if (!Object->TryGetStringField(Field, Value) || !Value.Split(TEXT(":"), &Hours, &Minutes) || !Hours.IsNumeric() || !Minutes.IsNumeric())
+	{
+		return Fallback;
+	}
+
+	// minutes after noon: 21:30 -> 570, 03:00 -> 900
+	const int32 Clock = FCString::Atoi(*Hours) * 60 + FCString::Atoi(*Minutes);
+	return (Clock - 12 * 60 + 24 * 60) % (24 * 60);
+}
+
 void UGameDataSubsystem::Reload()
 {
 	Nights.Reset();
@@ -186,15 +211,30 @@ void UGameDataSubsystem::Reload()
 			for (const TSharedPtr<FJsonValue>& LineValue : Object->GetArrayField(TEXT("lines")))
 			{
 				const TSharedPtr<FJsonObject> LineObject = LineValue->AsObject();
-				FRadioLine Line;
-				LineObject->TryGetStringField(TEXT("speaker"), Line.Speaker);
-				Line.Text = ParseLoc(LineObject, TEXT("text"));
+				Transmission.Lines.Add(ParseRadioLine(LineObject));
 
-				double Duration = Line.Duration;
-				LineObject->TryGetNumberField(TEXT("duration"), Duration);
-				Line.Duration = Duration;
-
-				Transmission.Lines.Add(MoveTemp(Line));
+				// "choices": what the keeper can say back once this line has been heard
+				const TArray<TSharedPtr<FJsonValue>>* ChoiceValues = nullptr;
+				if (LineObject->TryGetArrayField(TEXT("choices"), ChoiceValues))
+				{
+					TArray<FRadioChoice>& Choices = Transmission.Choices.Add(Transmission.Lines.Num() - 1);
+					for (const TSharedPtr<FJsonValue>& ChoiceValue : *ChoiceValues)
+					{
+						const TSharedPtr<FJsonObject> ChoiceObject = ChoiceValue->AsObject();
+						FRadioChoice Choice;
+						Choice.Id = FName(ChoiceObject->GetStringField(TEXT("id")));
+						Choice.Text = ParseLoc(ChoiceObject, TEXT("text"));
+						const TArray<TSharedPtr<FJsonValue>>* ReplyValues = nullptr;
+						if (ChoiceObject->TryGetArrayField(TEXT("reply"), ReplyValues))
+						{
+							for (const TSharedPtr<FJsonValue>& ReplyValue : *ReplyValues)
+							{
+								Choice.Reply.Add(ParseRadioLine(ReplyValue->AsObject()));
+							}
+						}
+						Choices.Add(MoveTemp(Choice));
+					}
+				}
 			}
 			Transmissions.Add(MoveTemp(Transmission));
 		}
@@ -209,6 +249,8 @@ void UGameDataSubsystem::Reload()
 			Night.Night = static_cast<int32>(Object->GetNumberField(TEXT("night")));
 			Night.Title = ParseLoc(Object, TEXT("title"));
 			Night.OnStart = ParseActions(Object, TEXT("on_start"));
+			Night.ClockStart = ParseClock(Object, TEXT("clock_start"), Night.ClockStart);
+			Night.ClockEnd = ParseClock(Object, TEXT("clock_end"), Night.ClockEnd);
 
 			for (const TSharedPtr<FJsonValue>& ObjectiveValue : Object->GetArrayField(TEXT("objectives")))
 			{
@@ -219,6 +261,7 @@ void UGameDataSubsystem::Reload()
 				Objective.Text = ParseLoc(ObjectiveObject, TEXT("text"));
 				Objective.OnStart = ParseActions(ObjectiveObject, TEXT("on_start"));
 				Objective.OnComplete = ParseActions(ObjectiveObject, TEXT("on_complete"));
+				Objective.Clock = ParseClock(ObjectiveObject, TEXT("clock"), -1);
 				Night.Objectives.Add(MoveTemp(Objective));
 			}
 

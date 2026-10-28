@@ -8,6 +8,7 @@
 
 class ALastWatchPlayerController;
 class UStaticMeshComponent;
+struct FRadioChoice;
 struct FRadioTransmission;
 
 /**
@@ -182,7 +183,19 @@ protected:
 		float LineTime = 0.0f;
 		bool bFinished = false;
 		bool bInGap = false;
+
+		/** The call is waiting for the keeper to answer the line just heard */
+		bool bChoosing = false;
+
+		/** The answer given (index into the line's choices) and how far its reply has got:
+		 *  -1 is the keeper saying it, 0.. the lines that answer it */
+		int32 Reply = INDEX_NONE;
+		int32 ReplyLine = -1;
 	};
+
+	/** How long the keeper's own answer stays up before the reply */
+	UPROPERTY(EditAnywhere, Category="Radio", meta=(Units="s"))
+	float AnswerDuration = 2.5f;
 
 	/** Playback progress per transmission id, so a call resumes where it was left */
 	TMap<FName, FPlayback> Playback;
@@ -209,6 +222,12 @@ public:
 
 	/** 0..1 strength of the closest on-air transmission */
 	float GetSignalStrength() const;
+
+	/** Answers the call is waiting for, or nullptr while nobody is asking */
+	const TArray<FRadioChoice>* GetPendingChoices() const;
+
+	/** The keeper answers with choice Index (0-based) */
+	void Choose(int32 Index);
 
 private:
 

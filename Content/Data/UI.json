@@ -20,6 +20,7 @@
     "radio.title":        { "en": "RADIO",                   "tr": "TELSİZ" },
     "radio.hint":         { "en": "[A / D or mouse wheel] Tune     [E] Leave", "tr": "[A / D veya fare tekerleği] Ayarla     [E] Bırak" },
     "radio.static":       { "en": "— static —",              "tr": "— parazit —" },
+    "radio.answer":       { "en": "Answer:",                 "tr": "Cevap ver:" },
 
     "inventory.title":    { "en": "INVENTORY",               "tr": "ENVANTER" },
     "inventory.items":    { "en": "ITEMS",                   "tr": "EŞYALAR" },
@@ -77,6 +78,20 @@
     "opt.large":          { "en": "Large",                   "tr": "Büyük" },
 
     "hud.saved":          { "en": "Progress saved",          "tr": "İlerleme kaydedildi" },
+
+    "lamp.state.cold":      { "en": "The lamp is cold.",                          "tr": "Lamba soğuk." },
+    "lamp.state.fresh":     { "en": "The light turns. Wound and full.",           "tr": "Işık dönüyor. Zemberek kurulu, hazne dolu." },
+    "lamp.state.steady":    { "en": "The light turns steadily.",                  "tr": "Işık düzgün dönüyor." },
+    "lamp.state.slowing":   { "en": "The beam is slowing. Wind the clockwork.",   "tr": "Huzme yavaşlıyor. Zembereği kur." },
+    "lamp.state.guttering": { "en": "The flame gutters. The reservoir is nearly dry.", "tr": "Alev titriyor. Hazne neredeyse boş." },
+    "lamp.state.stopped":   { "en": "The beam has stopped turning.",              "tr": "Huzme dönmeyi bıraktı." },
+    "lamp.state.out":       { "en": "The lamp has gone out.",                     "tr": "Lamba söndü." },
+    "lamp.say.slowing":     { "en": "The flashes are coming further apart. The clockwork's running down.", "tr": "Çakmalar seyreliyor. Zemberek boşalıyor." },
+    "lamp.say.guttering":   { "en": "The light's gone thin and yellow. It's burning the last of the paraffin.", "tr": "Işık inceldi, sarardı. Son gazyağını yakıyor." },
+    "lamp.say.stopped":     { "en": "The beam's stopped. It's just... staring at one patch of sea.", "tr": "Huzme durdu. Sadece... denizin tek bir noktasına bakıyor." },
+    "lamp.say.out":         { "en": "Dark. The lamp's out. Everything out there can see I'm blind.", "tr": "Karanlık. Lamba söndü. Dışarıdaki her şey kör olduğumu görebiliyor." },
+    "lamp.hint":            { "en": "The lamp needs tending through the night: wind the clockwork and top up the reservoir in the lantern room. [T] Check your watch.", "tr": "Lambaya gece boyunca bakmak gerek: fener odasında zembereği kur ve hazneyi doldur. [T] Saatine bak." },
+    "hint.watch":           { "en": "[T] Check your watch",                       "tr": "[T] Saatine bak" },
     "ending.continue":    { "en": "[E] Return to title",     "tr": "[E] Ana menüye dön" }
   }
 }

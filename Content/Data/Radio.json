@@ -1,15 +1,36 @@
 {
-  "_comment": "frequency in kHz. 'nights' limits when a transmission is on air (empty = always). 'loop' repeats after 'loop_gap' seconds. Hearing a transmission to the end reports radio:<id> to the story.",
+  "_comment": "frequency in kHz. 'nights' limits when a transmission is on air (empty = always). 'loop' repeats after 'loop_gap' seconds. Hearing a transmission to the end reports radio:<id> to the story. A line with 'choices' waits for the keeper to answer (keys 1-3): the keeper's line is shown, then its 'reply' lines play, then the call goes on. Answering reports say:<choice id>.",
   "transmissions": [
     {
       "id": "margaret_n1",
       "frequency": 2182,
       "nights": [1],
       "lines": [
-        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Skerrow Rock, this is Coastguard Station Hale. Do you read me, Keeper?", "tr": "Skerrow Rock, burası Hale Sahil Güvenlik İstasyonu. Beni duyuyor musun, Bekçi?" } },
+        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Skerrow Rock, this is Coastguard Station Hale. Do you read me, Keeper?", "tr": "Skerrow Rock, burası Hale Sahil Güvenlik İstasyonu. Beni duyuyor musun, Bekçi?" },
+          "choices": [
+            { "id": "n1_read", "text": { "en": "Reading you, Hale. Loud and clear.", "tr": "Seni duyuyorum, Hale. Net ve açık." },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 2.5, "text": { "en": "Lovely.", "tr": "Harika." } }
+              ] },
+            { "id": "n1_who", "text": { "en": "Who am I speaking to?", "tr": "Kiminle konuşuyorum?" },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Margaret. I'm the only voice you'll hear out there for a month, so best get used to me.", "tr": "Margaret. Bir ay boyunca orada duyacağın tek ses benim, alışsan iyi olur." } }
+              ] }
+          ] },
         { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Good. The line's clear tonight. That doesn't happen often out there.", "tr": "Güzel. Hat bu gece temiz. Orada pek sık olmaz bu." } },
         { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "I can see your light from here. One flash every five seconds. That's all we ask.", "tr": "Işığını buradan görebiliyorum. Beş saniyede bir çakma. Tek istediğimiz bu." } },
-        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Call in at three. Every night. If you miss the three o'clock, I'll worry.", "tr": "Saat üçte ara. Her gece. Saat üçü kaçırırsan endişelenirim." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Call in at three. Every night. If you miss the three o'clock, I'll worry.", "tr": "Saat üçte ara. Her gece. Saat üçü kaçırırsan endişelenirim." },
+          "choices": [
+            { "id": "n1_why_three", "text": { "en": "Why three o'clock?", "tr": "Neden saat üç?" },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Standing orders. It's when the lamp is needed most.", "tr": "Daimi emirler. Lambaya en çok o saatte ihtiyaç var." } },
+                { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Don't ask me why. I only keep the log.", "tr": "Nedenini sorma. Ben sadece kayıt tutuyorum." } }
+              ] },
+            { "id": "n1_understood", "text": { "en": "Understood. Three o'clock.", "tr": "Anlaşıldı. Saat üç." },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 3.0, "text": { "en": "Good. You'll do fine.", "tr": "Güzel. İyi iş çıkaracaksın." } }
+              ] }
+          ] },
         { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Get some rest when you can. Hale out.", "tr": "Fırsat buldukça dinlen. Hale, tamam." } }
       ]
     },
@@ -18,9 +39,29 @@
       "frequency": 2182,
       "nights": [2],
       "lines": [
-        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Evening, Keeper. Light's looking strong tonight.", "tr": "İyi akşamlar, Bekçi. Işık bu gece güçlü görünüyor." } },
-        { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Lights in the fog? Fishermen out of Lerwick, I expect. They don't log their positions.", "tr": "Sisin içinde ışıklar mı? Lerwick'ten balıkçılardır. Konumlarını bildirmezler." } },
-        { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Elias? ...He was a good keeper. Let's not talk about Elias on an open channel.", "tr": "Elias mı? ...İyi bir bekçiydi. Açık kanalda Elias'tan bahsetmeyelim." } },
+        { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Evening, Keeper. Light's looking strong tonight.", "tr": "İyi akşamlar, Bekçi. Işık bu gece güçlü görünüyor." },
+          "choices": [
+            { "id": "n2_lights", "text": { "en": "I saw lights out in the fog last night.", "tr": "Dün gece sisin içinde ışıklar gördüm." },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Lights in the fog? Fishermen out of Lerwick, I expect. They don't log their positions.", "tr": "Sisin içinde ışıklar mı? Lerwick'ten balıkçılardır. Konumlarını bildirmezler." } }
+              ] },
+            { "id": "n2_quiet", "text": { "en": "All quiet. Just the wind.", "tr": "Her şey sakin. Sadece rüzgâr." },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Quiet is what we want out there. Quiet is good.", "tr": "Orada istediğimiz şey sessizlik. Sessizlik iyidir." } }
+              ] }
+          ] },
+        { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Anything else before I sign off?", "tr": "Kapatmadan önce başka bir şey var mı?" },
+          "choices": [
+            { "id": "n2_elias", "text": { "en": "What happened to Elias Marr?", "tr": "Elias Marr'a ne oldu?" },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Elias? ...He was a good keeper. Let's not talk about Elias on an open channel.", "tr": "Elias mı? ...İyi bir bekçiydi. Açık kanalda Elias'tan bahsetmeyelim." } },
+                { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "So. How's the weather your side? Still from the west?", "tr": "Eee. Senin tarafta hava nasıl? Hâlâ batıdan mı?" } }
+              ] },
+            { "id": "n2_nothing", "text": { "en": "No. Nothing else.", "tr": "Hayır. Başka bir şey yok." },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 2.5, "text": { "en": "Right then.", "tr": "Peki o zaman." } }
+              ] }
+          ] },
         { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Keep the light turning. Hale out.", "tr": "Işığı döndürmeye devam et. Hale, tamam." } }
       ]
     },
@@ -30,7 +71,17 @@
       "nights": [3],
       "lines": [
         { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "You're late calling in tonight, Keeper.", "tr": "Bu gece aramakta geciktin, Bekçi." } },
-        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "...You've been on the north side. Don't ask how I know. Please. Just don't go down there again.", "tr": "...Kuzey taraftaydın. Nereden bildiğimi sorma. Lütfen. Sadece oraya bir daha inme." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "...You've been on the north side. Don't ask how I know. Please. Just don't go down there again.", "tr": "...Kuzey taraftaydın. Nereden bildiğimi sorma. Lütfen. Sadece oraya bir daha inme." },
+          "choices": [
+            { "id": "n3_vesper", "text": { "en": "What is VESPER, Margaret?", "tr": "VESPER nedir, Margaret?" },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "I don't know that word. And neither do you. Please.", "tr": "O kelimeyi bilmiyorum. Sen de bilmiyorsun. Lütfen." } }
+              ] },
+            { "id": "n3_promise", "text": { "en": "I won't. I promise.", "tr": "İnmeyeceğim. Söz veriyorum." },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "Thank you. You don't know how much that... Thank you.", "tr": "Teşekkür ederim. Bunun ne kadar... Teşekkür ederim." } }
+              ] }
+          ] },
         { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "I can't tell you what it is. I'm not allowed. But the light works. As long as it turns, you're safe.", "tr": "Ne olduğunu söyleyemem. İznim yok. Ama ışık işe yarıyor. Döndüğü sürece güvendesin." } },
         { "speaker": "MARGARET", "duration": 3.5, "text": { "en": "Three o'clock. Don't miss it. Hale out.", "tr": "Saat üç. Kaçırma. Hale, tamam." } }
       ]
@@ -41,7 +92,17 @@
       "nights": [4],
       "lines": [
         { "speaker": "MARGARET", "duration": 4.0, "text": { "en": "Skerrow, Hale. Storm warning, force nine, backing south-west by midnight.", "tr": "Skerrow, Hale. Fırtına uyarısı, kuvvet dokuz, gece yarısına doğru güneybatıya dönüyor." } },
-        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Listen to me. Tonight you may hear other voices on this set. People you know. People who are gone.", "tr": "Beni dinle. Bu gece bu telsizde başka sesler duyabilirsin. Tanıdığın insanlar. Artık olmayan insanlar." } },
+        { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Listen to me. Tonight you may hear other voices on this set. People you know. People who are gone.", "tr": "Beni dinle. Bu gece bu telsizde başka sesler duyabilirsin. Tanıdığın insanlar. Artık olmayan insanlar." },
+          "choices": [
+            { "id": "n4_elias_alive", "text": { "en": "Elias is alive, isn't he?", "tr": "Elias yaşıyor, değil mi?" },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "Elias Marr was lost at sea on the ninth of September. I typed the report myself.", "tr": "Elias Marr dokuz Eylül'de denizde kayboldu. Raporu kendim yazdım." } }
+              ] },
+            { "id": "n4_employer", "text": { "en": "Who do you really work for?", "tr": "Sen aslında kimin için çalışıyorsun?" },
+              "reply": [
+                { "speaker": "MARGARET", "duration": 5.0, "text": { "en": "...The same people you do, Keeper. You signed the papers. You just didn't read them.", "tr": "...Seninle aynı insanlar için, Bekçi. Kâğıtları imzaladın. Sadece okumadın." } }
+              ] }
+          ] },
         { "speaker": "MARGARET", "duration": 4.5, "text": { "en": "None of them are us. Whatever they ask you to do, keep the lamp lit. Hale out.", "tr": "Hiçbiri biz değiliz. Senden ne isterlerse istesinler, lambayı yanık tut. Hale, tamam." } }
       ]
     },
@@ -53,7 +114,18 @@
         { "speaker": "ELIAS", "duration": 4.0, "text": { "en": "...can you hear me? It's Elias. Elias Marr.", "tr": "...beni duyabiliyor musun? Ben Elias. Elias Marr." } },
         { "speaker": "ELIAS", "duration": 4.5, "text": { "en": "I didn't fall. I'm alive. I'm out on the rocks, under the light.", "tr": "Düşmedim. Yaşıyorum. Kayalıklardayım, ışığın altında." } },
         { "speaker": "ELIAS", "duration": 5.0, "text": { "en": "They're lying to you. The Ministry, Margaret, all of them. The light isn't protecting you. It's keeping something prisoner.", "tr": "Sana yalan söylüyorlar. Bakanlık, Margaret, hepsi. Işık seni korumuyor. Bir şeyi tutsak ediyor." } },
-        { "speaker": "ELIAS", "duration": 4.5, "text": { "en": "Turn it off. Tomorrow night, turn it off, and I can come home.", "tr": "Söndür onu. Yarın gece söndür, eve gelebileyim." } },
+        { "speaker": "ELIAS", "duration": 4.5, "text": { "en": "Turn it off. Tomorrow night, turn it off, and I can come home.", "tr": "Söndür onu. Yarın gece söndür, eve gelebileyim." },
+          "choices": [
+            { "id": "n4_prove", "text": { "en": "How do I know it's really you?", "tr": "Gerçekten sen olduğunu nereden bileyim?" },
+              "reply": [
+                { "speaker": "ELIAS", "duration": 4.5, "text": { "en": "Ask me about the gulls. I fed them every morning, off the end of the pier.", "tr": "Bana martıları sor. Her sabah iskelenin ucundan onları beslerdim." } },
+                { "speaker": "ELIAS", "duration": 4.5, "text": { "en": "I gave them names. I... can't remember the names. Why can't I remember them?", "tr": "Onlara isim vermiştim. Ben... isimleri hatırlayamıyorum. Neden hatırlayamıyorum?" } }
+              ] },
+            { "id": "n4_think", "text": { "en": "I'll think about it.", "tr": "Düşüneceğim." },
+              "reply": [
+                { "speaker": "ELIAS", "duration": 4.0, "text": { "en": "Don't think. Thinking is what they want. Thinking keeps you there.", "tr": "Düşünme. Düşünmeni istedikleri şey o. Düşünmek seni orada tutuyor." } }
+              ] }
+          ] },
         { "speaker": "", "duration": 4.0, "text": { "en": "[...under his voice, very faintly, many others say the same words]", "tr": "[...sesinin altında, çok hafif, başka birçok ses de aynı kelimeleri söylüyor]" } }
       ]
     },

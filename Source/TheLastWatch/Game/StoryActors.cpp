@@ -15,6 +15,7 @@
 #include "LastWatchHUD.h"
 #include "LastWatchPlayerController.h"
 #include "StorySubsystem.h"
+#include "WatchSubsystem.h"
 
 namespace
 {
@@ -32,6 +33,12 @@ namespace
 AStoryTask::AStoryTask()
 {
 	Color = FLinearColor(0.3f, 0.3f, 0.3f);
+}
+
+bool AStoryTask::IsExpectedByStory() const
+{
+	const UStorySubsystem* Story = UStorySubsystem::Get(this);
+	return Story && Story->IsExpected(TEXT("task:") + TaskId.ToString());
 }
 
 bool AStoryTask::HasRequiredItem(const ALastWatchPlayerController* Keeper) const
@@ -55,6 +62,11 @@ FText AStoryTask::GetPrompt(const ALastWatchPlayerController* Keeper) const
 
 bool AStoryTask::CanInteract(const ALastWatchPlayerController* Keeper) const
 {
+	// the lantern chores stay usable to look after a lit lamp (see UWatchSubsystem)
+	if (const UWatchSubsystem* Watch = UWatchSubsystem::Get(this); Watch && Watch->CanTend(TaskId, Keeper) && !IsExpectedByStory())
+	{
+		return true;
+	}
 	if (bDoneTonight && !bRepeatable)
 	{
 		return false;
@@ -87,6 +99,21 @@ void AStoryTask::Interact(ALastWatchPlayerController* Keeper)
 
 void AStoryTask::Complete(ALastWatchPlayerController* Keeper)
 {
+	// looking after the lamp rather than a step of the story
+	if (UWatchSubsystem* Watch = UWatchSubsystem::Get(this); Watch && Watch->CanTend(TaskId, Keeper) && !IsExpectedByStory())
+	{
+		if (!RequiredItem.IsNone() && bConsumeItem)
+		{
+			Keeper->GetInventory()->RemoveItem(RequiredItem);
+		}
+		if (CompleteSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, CompleteSound, GetActorLocation());
+		}
+		Watch->Tend(TaskId, Keeper);
+		return;
+	}
+
 	if (!RequiredItem.IsNone() && bConsumeItem)
 	{
 		Keeper->GetInventory()->RemoveItem(RequiredItem);

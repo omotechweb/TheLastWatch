@@ -35,7 +35,7 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 
 ## Geliştirici konsol komutları (oyunda ` tuşu)
 
-`DebugMenu <sayfa>`, `DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `DebugTeleport X Y Z Yaw Pitch` (uçma moduna geçer; kamera açısı için; bir şeyin içine denk gelirse sessizce başarısız olur ve oyuncu başlangıçta kalır), `DebugLamp 0|1`, `DebugDumpLights <cm>`, `DebugShotAfter <s>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
+`DebugMenu <sayfa>`, `DebugOpenNote <id>`, `DebugGiveItem <id>`, `DebugInventory`, `DebugRadio <kHz>`, `DebugSetNight <1-5>`, `DebugTeleport X Y Z Yaw Pitch` (uçma moduna geçer; kamera açısı için; bir şeyin içine denk gelirse sessizce başarısız olur ve oyuncu başlangıçta kalır), `DebugLamp 0|1`, `DebugDumpLights <cm>`, `DebugShotAfter <s>`, `DebugAfter <sn> <komut>` (komutu sn saniye sonra çalıştırır; `-ExecCmds` ile zamanlı testler için), `DebugLampState <zemberek 0-1> <yakıt 0-1>`, `DebugClock HH:MM` (tam saate denk gelirse saati çaldırır), `DebugRadioAnswer <1-3>`, `tlw.Language en|tr`, `tlw.ReloadData` (JSON'ları oyunu kapatmadan yeniden okur).
 
 Ekran görüntüsünde `viewmode unlit` / `viewmode lit_detaillighting` komutları renk mi ışık mı sorunu olduğunu ayırmak için işe yarar.
 
@@ -48,7 +48,8 @@ Ekran görüntüsünde `viewmode unlit` / `viewmode lit_detaillighting` komutlar
 - `LastWatchPlayerController` — odak (line trace), E etkileşimi, modlar (Explore/Reading/Radio/Inventory), girdiler kodda oluşturulur.
 - `LastWatchHUD` — tüm arayüz Slate ile C++'ta.
 - `LastWatchGameMode` — şablonun `BP_HorrorCharacter`'ını kullanır, `CurrentNight` tutar.
-- `LighthouseBeam` — dönen iki spot ışık + lamba parıltısı, `SetLit()` ile söner.
+- `LighthouseBeam` — dönen iki spot ışık + lamba parıltısı, `SetLit()` ile söner. `SetCondition(Drive, Power)` dönüş hızını ve parlaklığı ölçekler (bakım sistemi kullanır).
+- `UWatchSubsystem` (`Game/WatchSubsystem.*`) — bekçinin saati ve lambanın bakımı. **Saat:** gece `clock_start`'tan (vars. 21:30) `clock_end`'e (05:40) gider; objective'lere `"clock": "03:00"` ile saat sabitlenebilir, gerisi aralara eşit dağılır, açık objective sırasında akrep bir sonrakine doğru yavaşça ilerler (hikâye hızına uyar, geri gitmez, gecenin son adımı bitince durur). Her saat başı cep saati çalar, hikâyeye `time:HH00` gönderir; saat 3'te denizden bir çan da cevap verir. T tuşu saati gösterir (sol alt: saat + lambanın durumu). **Lamba:** hikâye lambayı yakınca zemberek 8 dk, yakıt 14 dk'da biter (belge okurken / menüde durur). Zemberek azalınca huzme yavaşlar → durur; yakıt azalınca alev titrer → söner. Durmuş/sönmüş lamba korkuyu artırır ve Watcher'ı çıkarır. Bakım, fener odasındaki aynı `AStoryTask`'larla (`wind`, `refuel`, alttaki `fuel_drum` bidon verir) hikâye onları beklemiyorken yapılır. Olaylar: `lamp:slowing`, `lamp:guttering`, `lamp:stopped`, `lamp:out`, `lamp:tended`.
 - `FootstepComponent` — ayak altındaki mesh'in asset yoluna göre ayak sesi (kulübe=ahşap, santral=beton, ada=toprak).
 - Test haritası: `/Game/Maps/Dev/L_SystemsTest`, `Scripts/Editor/build_systems_test_map.py` ile üretilir.
 
@@ -73,8 +74,9 @@ Sığınak: `Scripts/Editor/build_bunker.py` (haritadan önce) — VESPER istasy
 ## Hikaye (5 gece)
 
 - Senaryo tamamen `Content/Data/Nights.json`: her gece `on_start` eylemleri + sıralı `objectives` (`complete_on` olayı) + `events` (o gece her zaman tepki; son gecedeki seçim). Belgeler `Notes.json`, telsiz `Radio.json` (`nights` alanı), eşyalar `Items.json`, istemler `UI.json`.
-- `UStorySubsystem` (`Game/StorySubsystem.*`) geceyi başlatır, olayları dinler: `read:<not>`, `take:<eşya>`, `task:<id>`, `enter:<alan>`, `radio:<yayın>`, `use:<kapı>`, `delay:<sn>`. Eylemler: subtitle, title, toast, fade_out/in, show/hide (etiket), lamp_on/off, give/remove, sound, teleport (etiket), storm, fog, ambience (`etiket=ses`), notify, next_night, ending, to_title (ana menüye dön), quit. `ending` eyleminin `arg`'ı (`light`/`dark`) kayda "görülen son" olarak yazılır.
+- `UStorySubsystem` (`Game/StorySubsystem.*`) geceyi başlatır, olayları dinler: `read:<not>`, `take:<eşya>`, `task:<id>`, `enter:<alan>`, `radio:<yayın>`, `use:<kapı>`, `delay:<sn>`. Ayrıca `time:HH00` (saat başı), `lamp:<durum>` (bakım), `say:<cevap id>` (telsizde verilen cevap). Eylemler: subtitle, title, toast, fade_out/in, show/hide (etiket), lamp_on/off, give/remove, sound, teleport (etiket), storm, fog, ambience (`etiket=ses`), notify, next_night, ending, to_title (ana menüye dön), quit. `ending` eyleminin `arg`'ı (`light`/`dark`) kayda "görülen son" olarak yazılır.
 - Haritadaki karşılıkları `build_skerrow_map.py` sonundaki "story" bölümünde: `AStoryTask` (görünmez kutu, basılı tutma, gerekli eşya; yalnızca hikaye onu beklerken kullanılabilir), `AStoryVolume`, `ATeleportDoor`, `ATargetPoint` etiketleri, `AStormController`. Aktör etiketi `night:3-5` → sadece o gecelerde görünür.
+- Telsiz cevapları: `Radio.json`'da bir satıra `"choices"` eklenirse çağrı o satırdan sonra durur, telsiz panelinde seçenekler çıkar (1–3 tuşları / gamepad X-Y-B); bekçinin cümlesi `KEEPER` olarak görünür, ardından seçeneğin `reply` satırları çalar, çağrı devam eder. Çağrının sonuna kadar dinlenmesi yine `radio:<id>` gönderir.
 - Yeni gece adımı eklemek: JSON'a objective yaz → gerekiyorsa haritaya task/volume ekle (id'ler aynı) → `DebugAutoplay 5` ile tüm akışı log'dan doğrula (`Story:` satırları) → kritik etkileşimi `test_input.ps1` ile gerçek tuşla dene.
 - Hata ayıklama: `DebugSetNight n`, `DebugSkipObjective`, `DebugStoryEvent <olay>`, `DebugAutoplay <sn>`. `DebugTeleport` başarısız olursa log'da `Teleport blocked by ... (mesh ...)` yazar.
 

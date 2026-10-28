@@ -63,7 +63,11 @@ public:
 	virtual void Interact(ALastWatchPlayerController* Keeper) override;
 
 	float GetHoldSeconds() const { return HoldSeconds; }
+	FName GetTaskId() const { return TaskId; }
 	bool HasRequiredItem(const ALastWatchPlayerController* Keeper) const;
+
+	/** True while the current objective is waiting for this task */
+	bool IsExpectedByStory() const;
 
 	/** Called when a hold finishes, or straight from Interact for single presses */
 	void Complete(ALastWatchPlayerController* Keeper);

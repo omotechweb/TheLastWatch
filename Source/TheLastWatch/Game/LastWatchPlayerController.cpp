@@ -1,4 +1,4 @@
-// The Last Watch
+﻿// The Last Watch
 
 #include "LastWatchPlayerController.h"
 #include "Camera/CameraActor.h"
@@ -37,6 +37,8 @@
 #include "LastWatchGameMode.h"
 #include "LastWatchHUD.h"
 #include "LighthouseBeam.h"
+#include "WatchSubsystem.h"
+#include "TimerManager.h"
 #include "StoryActors.h"
 #include "StorySubsystem.h"
 #include "TheLastWatch.h"
@@ -102,10 +104,13 @@ void ALastWatchPlayerController::CreateKeeperInput()
 	PauseAction      = MakeAction(this, TEXT("IA_Pause"));
 	MenuConfirmAction = MakeAction(this, TEXT("IA_MenuConfirm"));
 	FlashlightAction = MakeAction(this, TEXT("IA_Flashlight"));
+	WatchAction      = MakeAction(this, TEXT("IA_Watch"));
 
 	ExploreContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Keeper"));
 	ExploreContext->MapKey(FlashlightAction, EKeys::F);
 	ExploreContext->MapKey(FlashlightAction, EKeys::Gamepad_LeftShoulder);
+	ExploreContext->MapKey(WatchAction, EKeys::T);
+	ExploreContext->MapKey(WatchAction, EKeys::Gamepad_DPad_Up);
 	ExploreContext->MapKey(InteractAction, EKeys::E);
 	ExploreContext->MapKey(InteractAction, EKeys::Gamepad_FaceButton_Bottom);
 	ExploreContext->MapKey(JumpAction, EKeys::SpaceBar);
@@ -206,6 +211,7 @@ void ALastWatchPlayerController::SetupInputComponent()
 		Input->BindAction(PauseAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnPause);
 		Input->BindAction(MenuConfirmAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnMenuConfirm);
 		Input->BindAction(FlashlightAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnFlashlight);
+		Input->BindAction(WatchAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnCheckWatch);
 	}
 	else
 	{
@@ -226,6 +232,20 @@ bool ALastWatchPlayerController::InputKey(const FInputKeyEventArgs& Params)
 	if (CVarLogPawn.GetValueOnGameThread() && Params.Event == IE_Pressed)
 	{
 		UE_LOG(LogTheLastWatch, Display, TEXT("Key pressed: %s"), *Params.Key.ToString());
+	}
+
+	// answering on the radio: 1-3 (or the gamepad's X / Y / B) pick a reply when the call asks for one
+	if (Mode == EKeeperMode::Radio && Params.Event == IE_Pressed)
+	{
+		const FKey& Key = Params.Key;
+		const int32 Answer = Key == EKeys::One || Key == EKeys::NumPadOne || Key == EKeys::Gamepad_FaceButton_Left ? 0
+			: Key == EKeys::Two || Key == EKeys::NumPadTwo || Key == EKeys::Gamepad_FaceButton_Top ? 1
+			: Key == EKeys::Three || Key == EKeys::NumPadThree || Key == EKeys::Gamepad_FaceButton_Right ? 2 : INDEX_NONE;
+		if (ARadioSet* Radio = ActiveRadio.Get(); Radio && Answer != INDEX_NONE && Radio->GetPendingChoices())
+		{
+			Radio->Choose(Answer);
+			return true;
+		}
 	}
 	return Super::InputKey(Params);
 }
@@ -277,6 +297,16 @@ void ALastWatchPlayerController::OnFlashlight()
 		{
 			Director->Click();
 		}
+	}
+}
+
+void ALastWatchPlayerController::OnCheckWatch()
+{
+	UWatchSubsystem* Watch = UWatchSubsystem::Get(this);
+	const UStorySubsystem* Story = UStorySubsystem::Get(this);
+	if (Watch && Story && Story->HasStarted() && Mode == EKeeperMode::Explore)
+	{
+		Watch->ShowWatch(6.0f);
 	}
 }
 
@@ -408,6 +438,13 @@ void ALastWatchPlayerController::PlayerTick(float DeltaTime)
 			OnInteractReleased();
 			Task->Complete(this);
 		}
+	}
+
+	// the clockwork ratchets while it is being wound
+	if (AKeeperDirector* Director = AKeeperDirector::Get(this))
+	{
+		const AStoryTask* Winding = HoldTarget.Get();
+		Director->SetRatchet(Winding && Winding->GetTaskId() == TEXT("wind") ? 1.0f : 0.0f);
 	}
 
 	// walked off a cliff or into the sea
@@ -922,7 +959,7 @@ TArray<FMenuEntry> ALastWatchPlayerController::GetMenuEntries() const
 			Entries.Add(MakeEntry(this, TEXT("objectives"), TEXT("set.objectives"), OnOff(this, Settings->bShowObjectives)));
 			Entries.Add(MakeEntry(this, TEXT("sensitivity"), TEXT("set.sensitivity"), FText::FromString(FString::Printf(TEXT("%.1f"), Settings->MouseSensitivity))));
 			Entries.Add(MakeEntry(this, TEXT("invert"), TEXT("set.invert"), OnOff(this, Settings->bInvertY)));
-			Entries.Add(MakeEntry(this, TEXT("fov"), TEXT("set.fov"), FText::FromString(FString::Printf(TEXT("%d°"), FMath::RoundToInt(Settings->FieldOfView)))));
+			Entries.Add(MakeEntry(this, TEXT("fov"), TEXT("set.fov"), FText::FromString(FString::Printf(TEXT("%dÂ°"), FMath::RoundToInt(Settings->FieldOfView)))));
 			Entries.Add(MakeEntry(this, TEXT("headbob"), TEXT("set.headbob"), OnOff(this, Settings->bHeadBob)));
 			Entries.Add(MakeEntry(this, TEXT("volume"), TEXT("set.volume"), FText::FromString(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Settings->MasterVolume * 100.0f)))));
 		}
@@ -1132,6 +1169,43 @@ void ALastWatchPlayerController::DebugWatcher(float Distance)
 	if (AKeeperDirector* Director = AKeeperDirector::Get(this))
 	{
 		Director->SpawnWatcherAhead(Distance > 0.0f ? Distance : 2500.0f);
+	}
+}
+
+void ALastWatchPlayerController::DebugAfter(float Seconds, const FString& Command)
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Command]
+	{
+		UE_LOG(LogTheLastWatch, Display, TEXT("DebugAfter: %s"), *Command);
+		ConsoleCommand(Command);
+	}), FMath::Max(Seconds, 0.01f), false);
+}
+
+void ALastWatchPlayerController::DebugRadioAnswer(int32 Choice)
+{
+	if (ARadioSet* Radio = ActiveRadio.Get())
+	{
+		Radio->Choose(Choice - 1);
+	}
+}
+
+void ALastWatchPlayerController::DebugLampState(float Tension, float Fuel)
+{
+	if (UWatchSubsystem* Watch = UWatchSubsystem::Get(this))
+	{
+		Watch->DebugSetLamp(Tension, Fuel);
+	}
+}
+
+void ALastWatchPlayerController::DebugClock(const FString& Time)
+{
+	FString Hours, Minutes;
+	UWatchSubsystem* Watch = UWatchSubsystem::Get(this);
+	if (Watch && Time.Split(TEXT(":"), &Hours, &Minutes))
+	{
+		const int32 Clock = FCString::Atoi(*Hours) * 60 + FCString::Atoi(*Minutes);
+		Watch->DebugSetClock((Clock + 12 * 60) % (24 * 60));
 	}
 }
 

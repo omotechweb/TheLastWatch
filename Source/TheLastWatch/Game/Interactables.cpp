@@ -11,6 +11,7 @@
 #include "LastWatchGameMode.h"
 #include "LastWatchPlayerController.h"
 #include "StorySubsystem.h"
+#include "TheLastWatch.h"
 
 namespace
 {
@@ -307,6 +308,46 @@ float ARadioSet::GetSignalStrength() const
 	return Signal;
 }
 
+const TArray<FRadioChoice>* ARadioSet::GetPendingChoices() const
+{
+	float Signal;
+	const FRadioTransmission* Transmission = FindClosestTransmission(Signal);
+	const FPlayback* State = Transmission ? Playback.Find(Transmission->Id) : nullptr;
+	if (!State || !State->bChoosing || Signal < ClearSignal)
+	{
+		return nullptr;
+	}
+	return Transmission->Choices.Find(State->Line);
+}
+
+void ARadioSet::Choose(int32 Index)
+{
+	float Signal;
+	const FRadioTransmission* Transmission = FindClosestTransmission(Signal);
+	const TArray<FRadioChoice>* Choices = GetPendingChoices();
+	if (!Choices || !Choices->IsValidIndex(Index))
+	{
+		return;
+	}
+
+	FPlayback& State = Playback.FindChecked(Transmission->Id);
+	State.bChoosing = false;
+	State.Reply = Index;
+	State.ReplyLine = -1;
+	State.LineTime = 0.0f;
+
+	const FName ChoiceId = (*Choices)[Index].Id;
+	UE_LOG(LogTheLastWatch, Display, TEXT("Radio: keeper answers %s on %s"), *ChoiceId.ToString(), *Transmission->Id.ToString());
+	if (AKeeperDirector* Director = AKeeperDirector::Get(this))
+	{
+		Director->Click();
+	}
+	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+	{
+		Story->Notify(TEXT("say:") + ChoiceId.ToString());
+	}
+}
+
 void ARadioSet::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -356,28 +397,74 @@ void ARadioSet::Tick(float DeltaSeconds)
 		return;
 	}
 
-	const FRadioLine& Line = Transmission->Lines[State.Line];
-	Keeper->SetSubtitle(FText::FromString(Line.Speaker), Line.Text.Get());
-
-	if (State.LineTime >= Line.Duration)
+	// waiting for the keeper to answer: the line stays open, nobody speaks
+	if (State.bChoosing)
 	{
+		Keeper->SetSubtitle(FText::GetEmpty(), FText::GetEmpty());
 		State.LineTime = 0.0f;
-		if (++State.Line >= Transmission->Lines.Num())
+		return;
+	}
+
+	// the line on air: the call itself, or the keeper's answer and the reply to it
+	const TArray<FRadioChoice>* Choices = Transmission->Choices.Find(State.Line);
+	const FRadioChoice* Answer = Choices && Choices->IsValidIndex(State.Reply) ? &(*Choices)[State.Reply] : nullptr;
+	FRadioLine Spoken;
+	const FRadioLine* Line = &Transmission->Lines[State.Line];
+	if (Answer && State.ReplyLine < 0)
+	{
+		Spoken.Speaker = TEXT("KEEPER");
+		Spoken.Text = Answer->Text;
+		Spoken.Duration = AnswerDuration;
+		Line = &Spoken;
+	}
+	else if (Answer)
+	{
+		Line = Answer->Reply.IsValidIndex(State.ReplyLine) ? &Answer->Reply[State.ReplyLine] : nullptr;
+	}
+
+	if (Line)
+	{
+		Keeper->SetSubtitle(FText::FromString(Line->Speaker), Line->Text.Get());
+		if (State.LineTime < Line->Duration)
 		{
-			State.Line = 0;
-			if (Transmission->bLoop)
-			{
-				State.bInGap = true;
-			}
-			else
-			{
-				State.bFinished = true;
-			}
-			// heard to the end (loops count once per pass)
-			if (UStorySubsystem* Story = UStorySubsystem::Get(this))
-			{
-				Story->Notify(TEXT("radio:") + Transmission->Id.ToString());
-			}
+			return;
+		}
+	}
+	State.LineTime = 0.0f;
+
+	if (Answer)
+	{
+		// next line of the reply, or back to the call once it is over
+		if (Answer->Reply.IsValidIndex(++State.ReplyLine))
+		{
+			return;
+		}
+		State.Reply = INDEX_NONE;
+		State.ReplyLine = -1;
+	}
+	else if (Choices && !Choices->IsEmpty())
+	{
+		// this line asks something: wait for an answer before going on
+		State.bChoosing = true;
+		Keeper->SetSubtitle(FText::GetEmpty(), FText::GetEmpty());
+		return;
+	}
+
+	if (++State.Line >= Transmission->Lines.Num())
+	{
+		State.Line = 0;
+		if (Transmission->bLoop)
+		{
+			State.bInGap = true;
+		}
+		else
+		{
+			State.bFinished = true;
+		}
+		// heard to the end (loops count once per pass)
+		if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+		{
+			Story->Notify(TEXT("radio:") + Transmission->Id.ToString());
 		}
 	}
 }

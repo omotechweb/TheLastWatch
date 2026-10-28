@@ -10,7 +10,8 @@
         { "type": "fade_in", "duration": 4.0, "delay": 1.0 },
         { "type": "title", "duration": 5.0, "delay": 1.5, "text": { "en": "Skerrow Rock, October 1974", "tr": "Skerrow Rock, Ekim 1974" } },
         { "type": "subtitle", "delay": 7.0, "duration": 5.0, "text": { "en": "The boat won't be back for a month. Just me, the lamp and the radio.", "tr": "Tekne bir ay geri gelmeyecek. Sadece ben, lamba ve telsiz." } },
-        { "type": "toast", "delay": 13.0, "text": { "en": "[F] Hand lamp on / off", "tr": "[F] El lambasını aç / kapat" } }
+        { "type": "toast", "delay": 13.0, "text": { "en": "[F] Hand lamp on / off", "tr": "[F] El lambasını aç / kapat" } },
+        { "type": "toast", "delay": 18.0, "text": { "en": "[T] Check your watch", "tr": "[T] Saatine bak" } }
       ],
       "objectives": [
         { "id": "go_cottage", "complete_on": "enter:cottage",
@@ -37,9 +38,9 @@
             { "type": "lamp_on" },
             { "type": "subtitle", "delay": 1.5, "duration": 4.0, "text": { "en": "There. Twenty miles of light.", "tr": "İşte. Yirmi millik ışık." } }
           ] },
-        { "id": "radio", "complete_on": "radio:margaret_n1",
+        { "id": "radio", "clock": "02:40", "complete_on": "radio:margaret_n1",
           "text": { "en": "Report to Hale on the radio in the shed (2182 kHz)", "tr": "Barakadaki telsizden Hale'e haber ver (2182 kHz)" } },
-        { "id": "sleep", "complete_on": "task:sleep",
+        { "id": "sleep", "clock": "03:30", "complete_on": "task:sleep",
           "text": { "en": "Go back to the cottage and get some sleep", "tr": "Kulübeye dön ve biraz uyu" },
           "on_start": [
             { "type": "show", "arg": "fog_lights", "delay": 12.0 },
@@ -51,7 +52,16 @@
             { "type": "fade_out", "duration": 2.5 },
             { "type": "next_night", "delay": 3.5 }
           ] }
-      ]
+      ],
+      "events": {
+        "time:0300": [
+          { "type": "dread", "arg": "0.15" },
+          { "type": "subtitle", "delay": 9.5, "duration": 6.0, "text": { "en": "Three o'clock. And out there, a bell. There's no bell buoy on any chart of Skerrow.", "tr": "Saat üç. Ve dışarıda, bir çan. Skerrow'un hiçbir haritasında çan şamandırası yok." } }
+        ],
+        "lamp:stopped": [
+          { "type": "subtitle", "delay": 6.0, "duration": 6.0, "text": { "en": "Somewhere across the water, Hale will be watching for the flash. Every five seconds. That's all they ask.", "tr": "Suyun öbür yanında Hale çakmayı gözlüyordur. Beş saniyede bir. Tek istedikleri bu." } }
+        ]
+      }
     },
     {
       "night": 2,
@@ -74,7 +84,7 @@
         { "id": "wind", "complete_on": "task:wind",
           "text": { "en": "Wind the clockwork", "tr": "Zembereği kur" },
           "on_complete": [ { "type": "lamp_on" } ] },
-        { "id": "radio", "complete_on": "radio:margaret_n2",
+        { "id": "radio", "clock": "02:15", "complete_on": "radio:margaret_n2",
           "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" },
           "on_complete": [
             { "type": "flicker", "delay": 5.0, "duration": 1.2 },
@@ -92,7 +102,7 @@
         { "id": "toolbox", "complete_on": "task:toolbox",
           "text": { "en": "Find a spare cable in the tool crate by the radio shed", "tr": "Telsiz barakasının yanındaki alet sandığında yedek halat bul" },
           "on_complete": [ { "type": "give", "arg": "spare_cable" } ] },
-        { "id": "repair", "complete_on": "task:repair",
+        { "id": "repair", "clock": "03:20", "complete_on": "task:repair",
           "text": { "en": "Fit the new cable to the clockwork", "tr": "Yeni halatı zembereğe tak" },
           "on_complete": [
             { "type": "lamp_on" },
@@ -105,13 +115,20 @@
             { "type": "give", "arg": "hatch_key" },
             { "type": "toast", "delay": 0.5, "text": { "en": "A heavy key was tucked inside the cover", "tr": "Kapağın içine ağır bir anahtar sıkıştırılmış" } }
           ] },
-        { "id": "sleep", "complete_on": "task:sleep",
+        { "id": "sleep", "clock": "04:20", "complete_on": "task:sleep",
           "text": { "en": "Go back to the cottage. Lock the door.", "tr": "Kulübeye dön. Kapıyı kilitle." },
           "on_complete": [
             { "type": "fade_out", "duration": 2.5 },
             { "type": "next_night", "delay": 3.5 }
           ] }
-      ]
+      ],
+      "events": {
+        "time:0300": [
+          { "type": "knock", "delay": 10.0 },
+          { "type": "panic", "arg": "0.25", "delay": 10.0 },
+          { "type": "subtitle", "delay": 12.0, "duration": 5.0, "text": { "en": "Three knocks. From inside the radio shed. There is no one on this island but me.", "tr": "Üç vuruş. Telsiz barakasının içinden. Bu adada benden başka kimse yok." } }
+        ]
+      }
     },
     {
       "night": 3,
@@ -153,21 +170,28 @@
             { "type": "dread", "arg": "0.45", "delay": 10.0 },
             { "type": "subtitle", "delay": 12.0, "duration": 6.0, "text": { "en": "...Something knocked on the hatch. Three times. As if it wanted to be let in.", "tr": "...Bir şey kapağa vurdu. Üç kez. İçeri alınmak istiyormuş gibi." } }
           ] },
-        { "id": "leave", "complete_on": "use:hatch_up",
+        { "id": "leave", "clock": "03:05", "complete_on": "use:hatch_up",
           "text": { "en": "Climb back up", "tr": "Yukarı çık" },
           "on_complete": [
             { "type": "sting", "arg": "0.5", "delay": 1.5 },
             { "type": "subtitle", "delay": 2.0, "duration": 5.0, "text": { "en": "Nobody. Just wet marks on the concrete, leading to the cliff edge.", "tr": "Kimse yok. Sadece betonun üstünde, uçurumun kenarına giden ıslak izler." } }
           ] },
-        { "id": "radio", "complete_on": "radio:margaret_n3",
+        { "id": "radio", "clock": "03:25", "complete_on": "radio:margaret_n3",
           "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" } },
-        { "id": "sleep", "complete_on": "task:sleep",
+        { "id": "sleep", "clock": "03:50", "complete_on": "task:sleep",
           "text": { "en": "Go back to the cottage", "tr": "Kulübeye dön" },
           "on_complete": [
             { "type": "fade_out", "duration": 2.5 },
             { "type": "next_night", "delay": 3.5 }
           ] }
-      ]
+      ],
+      "events": {
+        "time:0300": [
+          { "type": "flicker", "delay": 9.0, "duration": 2.0 },
+          { "type": "whisper", "delay": 9.5, "duration": 5.0 },
+          { "type": "subtitle", "delay": 11.0, "duration": 6.0, "text": { "en": "Zero. Three. One. Eight... Three in the morning. The codes are times.", "tr": "Sıfır. Üç. Bir. Sekiz... Sabahın üçü. Kodlar saat." } }
+        ]
+      }
     },
     {
       "night": 4,
@@ -207,7 +231,7 @@
           ] },
         { "id": "bunker", "complete_on": "use:hatch_down",
           "text": { "en": "Go back down to the station", "tr": "İstasyona geri in" } },
-        { "id": "tape", "complete_on": "task:tape",
+        { "id": "tape", "clock": "02:50", "complete_on": "task:tape",
           "text": { "en": "Play the tape marked VESPER 7", "tr": "VESPER 7 yazan kaseti çal" },
           "on_complete": [
             { "type": "whisper", "delay": 5.0, "duration": 12.0 },
@@ -218,7 +242,7 @@
             { "type": "subtitle", "delay": 11.0, "duration": 5.0, "speaker": "TAPE", "text": { "en": "[they go quiet exactly when the lamp's beam would pass]", "tr": "[fenerin huzmesinin geçeceği anda tam olarak susuyorlar]" } },
             { "type": "subtitle", "delay": 16.5, "duration": 6.0, "text": { "en": "That's not a submarine. That was never a submarine.", "tr": "Bu bir denizaltı değil. Hiçbir zaman denizaltı değildi." } }
           ] },
-        { "id": "roster", "complete_on": "read:keeper_roster",
+        { "id": "roster", "clock": "03:10", "complete_on": "read:keeper_roster",
           "text": { "en": "Search the records room", "tr": "Kayıt odasını ara" },
           "on_complete": [
             { "type": "sting", "arg": "1.0", "delay": 6.5 },
@@ -233,10 +257,19 @@
             { "type": "fade_out", "duration": 2.5 },
             { "type": "next_night", "delay": 3.5 }
           ] }
-      ]
+      ],
+      "events": {
+        "time:0300": [
+          { "type": "sting", "arg": "0.6", "delay": 9.0 },
+          { "type": "whisper", "delay": 9.0, "duration": 6.0 },
+          { "type": "flicker", "delay": 9.0, "duration": 2.5 },
+          { "type": "subtitle", "delay": 11.0, "duration": 5.0, "speaker": "ELIAS?", "text": { "en": "It's three, Keeper. We always come at three.", "tr": "Saat üç, Bekçi. Biz hep üçte geliriz." } }
+        ]
+      }
     },
     {
       "night": 5,
+      "clock_start": "02:20",
       "title": { "en": "The Last Night", "tr": "Son Gece" },
       "on_start": [
         { "type": "fade_out", "duration": 0.01 },
@@ -269,10 +302,15 @@
             { "type": "subtitle", "delay": 21.0, "duration": 6.0, "speaker": "ELIAS", "text": { "en": "I'm on the rocks below you. Look down. Turn it off and I can come home.", "tr": "Tam altındaki kayalıklardayım. Aşağı bak. Söndür, eve gelebileyim." } },
             { "type": "subtitle", "delay": 28.0, "duration": 5.0, "text": { "en": "Fuel or darkness. Someone has to decide.", "tr": "Yakıt ya da karanlık. Birinin karar vermesi gerek." } }
           ] },
-        { "id": "choose", "complete_on": "task:keep_light|task:darken",
+        { "id": "choose", "clock": "02:30", "complete_on": "task:keep_light|task:darken",
           "text": { "en": "Keep the light burning, or put it out", "tr": "Işığı yanık tut ya da söndür" } }
       ],
       "events": {
+        "time:0300": [
+          { "type": "whisper", "delay": 9.0, "duration": 8.0 },
+          { "type": "panic", "arg": "0.3", "delay": 9.0 },
+          { "type": "subtitle", "delay": 11.0, "duration": 6.0, "text": { "en": "Three o'clock. The last check. Whatever you do now, you do it for good.", "tr": "Saat üç. Son kontrol. Şimdi ne yaparsan, sonsuza dek yapmış olursun." } }
+        ],
         "task:keep_light": [
           { "type": "lamp_on" },
           { "type": "watcher", "arg": "0" },

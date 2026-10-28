@@ -77,6 +77,7 @@ private:
 	FText GetReaderPage() const;
 	FText GetRadioFrequency() const;
 	FText GetRadioSignal() const;
+	FText GetRadioChoices() const;
 	FText GetInventoryItems() const;
 	FText GetInventoryNotes() const;
 	FText UIText(const TCHAR* Key) const;
@@ -120,4 +121,7 @@ private:
 
 	TSharedRef<SWidget> BuildStoryOverlay();
 	float GetTitleOpacity() const;
+
+	/** The keeper's watch, faded with the watch subsystem and hidden over menus and documents */
+	float GetWatchAlpha() const;
 };

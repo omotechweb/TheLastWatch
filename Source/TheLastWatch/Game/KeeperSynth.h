@@ -50,6 +50,15 @@ public:
 	/** Small mechanical click (switches) */
 	void Click() { PendingClick.store(true); }
 
+	/** The keeper's repeater watch striking: Strikes small high tings */
+	void Chime(int32 Strikes) { PendingChime.store(Strikes); }
+
+	/** A deep bell somewhere out in the fog, tolling Strikes times */
+	void Toll(int32 Strikes) { PendingToll.store(Strikes); }
+
+	/** Ratchet of the clockwork being wound; 0 = silent, 1 = winding hard */
+	void SetRatchet(float Level) { Ratchet.store(Level); }
+
 protected:
 
 	virtual bool Init(int32& SampleRate) override;
@@ -69,6 +78,9 @@ private:
 	std::atomic<float> PendingSting{0.0f};
 	std::atomic<bool> PendingKnock{false};
 	std::atomic<bool> PendingClick{false};
+	std::atomic<int32> PendingChime{0};
+	std::atomic<int32> PendingToll{0};
+	std::atomic<float> Ratchet{0.0f};
 
 	// audio thread state
 	float Rate = 48000.0f;
@@ -108,6 +120,25 @@ private:
 	float KnockLP = 0.0f;
 
 	float ClickAge = 10.0f;
+
+	/** Struck bell: a few inharmonic partials decaying at their own rates, struck Strikes times */
+	struct FBell
+	{
+		int32 StrikesLeft = 0;
+		float UntilNext = 0.0f;
+		float Age = 100.0f;
+		double Phase[5] = {};
+	};
+	FBell ChimeBell;
+	FBell TollBell;
+	float TollLP = 0.0f;
+
+	double RatchetClock = 0.0;
+	float RatchetAge = 10.0f;
+	float RatchetLevel = 0.0f;
+
+	/** Advances a bell by one sample and returns its output */
+	float RingBell(FBell& Bell, float Dt, float Base, const float* Ratios, const float* Decays, const float* Gains, float Interval);
 
 	float Noise();
 	static float Smooth(float Current, float Target, float Coefficient);

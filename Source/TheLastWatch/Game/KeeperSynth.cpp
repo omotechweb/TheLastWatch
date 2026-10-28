@@ -59,6 +59,34 @@ float UKeeperSynth::BandPass(FBand& Filter, float Input, float Frequency, float 
 	return Filter.Band;
 }
 
+float UKeeperSynth::RingBell(FBell& Bell, float Dt, float Base, const float* Ratios, const float* Decays, const float* Gains, float Interval)
+{
+	if (Bell.StrikesLeft > 0)
+	{
+		Bell.UntilNext -= Dt;
+		if (Bell.UntilNext <= 0.0f)
+		{
+			--Bell.StrikesLeft;
+			Bell.UntilNext = Interval;
+			Bell.Age = 0.0f;
+		}
+	}
+	if (Bell.Age > 12.0f)
+	{
+		return 0.0f;
+	}
+
+	Bell.Age += Dt;
+	const float Attack = FMath::Min(Bell.Age / 0.004f, 1.0f);
+	float Out = 0.0f;
+	for (int32 i = 0; i < 5; ++i)
+	{
+		Bell.Phase[i] = FMath::Fmod(Bell.Phase[i] + Base * Ratios[i] * Dt, 1.0);
+		Out += FMath::Sin(static_cast<float>(Bell.Phase[i]) * TwoPi) * Gains[i] * FMath::Exp(-Bell.Age / Decays[i]);
+	}
+	return Out * Attack;
+}
+
 int32 UKeeperSynth::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 {
 	const float Dt = 1.0f / Rate;
@@ -87,6 +115,25 @@ int32 UKeeperSynth::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 	{
 		ClickAge = 0.0f;
 	}
+	if (const int32 Strikes = PendingChime.exchange(0); Strikes > 0)
+	{
+		ChimeBell.StrikesLeft = Strikes;
+		ChimeBell.UntilNext = 0.0f;
+	}
+	if (const int32 Strikes = PendingToll.exchange(0); Strikes > 0)
+	{
+		TollBell.StrikesLeft = Strikes;
+		TollBell.UntilNext = 2.5f; // answers after the watch has struck
+	}
+	const float RatchetTarget = Ratchet.load();
+
+	// bells: partial ratios, decay times (s) and gains
+	static constexpr float ChimeRatios[5] = { 1.0f, 2.32f, 4.25f, 6.63f, 9.38f };
+	static constexpr float ChimeDecays[5] = { 1.4f, 0.7f, 0.35f, 0.2f, 0.12f };
+	static constexpr float ChimeGains[5]  = { 1.0f, 0.45f, 0.25f, 0.12f, 0.06f };
+	static constexpr float TollRatios[5]  = { 0.5f, 1.0f, 1.19f, 1.5f, 2.0f };
+	static constexpr float TollDecays[5]  = { 9.0f, 6.0f, 4.0f, 3.0f, 2.0f };
+	static constexpr float TollGains[5]   = { 0.8f, 1.0f, 0.55f, 0.35f, 0.25f };
 
 	// one-pole low-pass coefficients
 	const float RumbleA = TwoPi * 70.0f / Rate;
@@ -254,6 +301,32 @@ int32 UKeeperSynth::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 		{
 			ClickAge += Dt;
 			Mono += (Noise() * FMath::Exp(-ClickAge / 0.002f) + FMath::Sin(TwoPi * 2400.0f * ClickAge) * FMath::Exp(-ClickAge / 0.008f)) * 0.25f;
+		}
+
+		// --- the watch striking the hour, and the bell out at sea
+		Mono += RingBell(ChimeBell, Dt, 1568.0f, ChimeRatios, ChimeDecays, ChimeGains, 0.55f) * 0.05f;
+		{
+			// far away: low-passed by the fog
+			const float Toll = RingBell(TollBell, Dt, 196.0f, TollRatios, TollDecays, TollGains, 3.2f);
+			TollLP += (TwoPi * 700.0f / Rate) * (Toll - TollLP);
+			Mono += TollLP * 0.16f;
+		}
+
+		// --- clockwork ratchet: pawl clicks while the keeper winds
+		RatchetLevel = Smooth(RatchetLevel, RatchetTarget, Fast);
+		if (RatchetLevel > 0.01f)
+		{
+			RatchetClock += Dt * (7.0 + 5.0 * RatchetLevel);
+			if (RatchetClock >= 1.0)
+			{
+				RatchetClock -= 1.0;
+				RatchetAge = 0.0f;
+			}
+		}
+		if (RatchetAge < 0.05f)
+		{
+			RatchetAge += Dt;
+			Mono += (Noise() * FMath::Exp(-RatchetAge / 0.003f) + FMath::Sin(TwoPi * 1300.0f * RatchetAge) * FMath::Exp(-RatchetAge / 0.012f)) * 0.18f * FMath::Max(RatchetLevel, 0.3f);
 		}
 
 		// soft clip so stacked layers never crack

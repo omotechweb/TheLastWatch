@@ -65,9 +65,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Lighthouse")
 	void SetLit(bool bValue);
 
+	/** The lamp's upkeep (UWatchSubsystem): Drive scales the turning speed, Power the brightness, both 0..1 */
+	void SetCondition(float InDrive, float InPower);
+
 	bool IsLit() const { return bLit; }
 
 private:
 
+	float Drive = 1.0f;
+	float Power = 1.0f;
+
+	void ApplyPower();
 	void ConfigureBeam(USpotLightComponent* Beam) const;
 };
