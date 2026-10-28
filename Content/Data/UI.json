@@ -64,6 +64,7 @@
     "set.language":       { "en": "Language",                "tr": "Dil" },
     "set.subtitles":      { "en": "Subtitle size",           "tr": "Altyazı boyutu" },
     "set.objectives":     { "en": "Show objectives",         "tr": "Görevleri göster" },
+    "set.headbob":        { "en": "Head bob",                "tr": "Kafa sallanması" },
     "set.sensitivity":    { "en": "Mouse sensitivity",       "tr": "Fare hassasiyeti" },
     "set.invert":         { "en": "Invert mouse Y",          "tr": "Fare Y eksenini ters çevir" },
     "set.fov":            { "en": "Field of view",           "tr": "Görüş alanı" },

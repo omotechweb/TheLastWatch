@@ -75,6 +75,12 @@ public:
 	/** Delegate called when we start and stop sprinting */
 	FSprintStateChangedDelegate OnSprintStateChanged;
 
+	/** 0..1 stamina left */
+	float GetSprintPercent() const { return SprintTime > 0.0f ? SprintMeter / SprintTime : 1.0f; }
+
+	/** The keeper's hand lamp */
+	USpotLightComponent* GetFlashlight() const { return SpotLight; }
+
 protected:
 
 	/** Constructor */

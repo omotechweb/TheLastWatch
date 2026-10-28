@@ -1,14 +1,16 @@
 {
-  "_comment": "The five nights. Objectives run in order; complete_on is the event that finishes one (read:<note> take:<item> task:<id> enter:<volume> radio:<transmission> use:<door> delay:<s>, 'a|b' for either). Actions: subtitle title toast fade_out fade_in show hide lamp_on lamp_off give remove sound teleport storm fog ambience notify next_night ending (arg = light/dark, recorded in the save) to_title (back to the title screen) quit. 'events' react to an event whenever it happens that night.",
+  "_comment": "The five nights. Objectives run in order; complete_on is the event that finishes one (read:<note> take:<item> task:<id> enter:<volume> radio:<transmission> use:<door> delay:<s>, 'a|b' for either). Actions: subtitle title toast fade_out fade_in show hide lamp_on lamp_off give remove sound teleport storm fog ambience notify next_night ending (arg = light/dark, recorded in the save) to_title (back to the title screen) quit. Mood (AKeeperDirector): dread (arg 0..1: drone, colour, grain), watcher (arg 0-3: how often the figure appears), sting (arg strength), knock, flicker (duration), whisper (duration), panic (arg amount), crowd (on/off). 'events' react to an event whenever it happens that night.",
   "nights": [
     {
       "night": 1,
       "title": { "en": "The First Night", "tr": "Birinci Gece" },
       "on_start": [
         { "type": "fade_out", "duration": 0.01 },
+        { "type": "dread", "arg": "0.08" },
         { "type": "fade_in", "duration": 4.0, "delay": 1.0 },
         { "type": "title", "duration": 5.0, "delay": 1.5, "text": { "en": "Skerrow Rock, October 1974", "tr": "Skerrow Rock, Ekim 1974" } },
-        { "type": "subtitle", "delay": 7.0, "duration": 5.0, "text": { "en": "The boat won't be back for a month. Just me, the lamp and the radio.", "tr": "Tekne bir ay geri gelmeyecek. Sadece ben, lamba ve telsiz." } }
+        { "type": "subtitle", "delay": 7.0, "duration": 5.0, "text": { "en": "The boat won't be back for a month. Just me, the lamp and the radio.", "tr": "Tekne bir ay geri gelmeyecek. Sadece ben, lamba ve telsiz." } },
+        { "type": "toast", "delay": 13.0, "text": { "en": "[F] Hand lamp on / off", "tr": "[F] El lambasını aç / kapat" } }
       ],
       "objectives": [
         { "id": "go_cottage", "complete_on": "enter:cottage",
@@ -41,6 +43,8 @@
           "text": { "en": "Go back to the cottage and get some sleep", "tr": "Kulübeye dön ve biraz uyu" },
           "on_start": [
             { "type": "show", "arg": "fog_lights", "delay": 12.0 },
+            { "type": "sting", "arg": "0.5", "delay": 12.5 },
+            { "type": "dread", "arg": "0.25", "delay": 12.0 },
             { "type": "subtitle", "delay": 14.0, "duration": 6.0, "text": { "en": "...A light, out in the fog. There's nothing out there. There's no ship due.", "tr": "...Sisin içinde bir ışık. Orada hiçbir şey yok. Beklenen bir gemi yok." } }
           ],
           "on_complete": [
@@ -56,6 +60,8 @@
         { "type": "fade_out", "duration": 0.01 },
         { "type": "teleport", "arg": "wake_cottage" },
         { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
+        { "type": "dread", "arg": "0.2" },
+        { "type": "watcher", "arg": "1", "delay": 90.0 },
         { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Second Night", "tr": "İkinci Gece" } },
         { "type": "subtitle", "delay": 5.5, "duration": 5.0, "text": { "en": "Slept through the day again. The island looks different at dusk. Smaller.", "tr": "Yine bütün gün uyumuşum. Ada alacakaranlıkta başka görünüyor. Daha küçük." } }
       ],
@@ -71,12 +77,16 @@
         { "id": "radio", "complete_on": "radio:margaret_n2",
           "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" },
           "on_complete": [
+            { "type": "flicker", "delay": 5.0, "duration": 1.2 },
             { "type": "lamp_off", "delay": 6.0 },
+            { "type": "sting", "arg": "0.8", "delay": 6.0 },
+            { "type": "dread", "arg": "0.35", "delay": 6.0 },
             { "type": "subtitle", "delay": 7.0, "duration": 5.0, "text": { "en": "...The beam. It's stopped. The lamp's gone dark.", "tr": "...Huzme. Durdu. Lamba söndü." } }
           ] },
         { "id": "inspect", "complete_on": "task:inspect_lamp",
           "text": { "en": "Find out why the lamp went out", "tr": "Lambanın neden söndüğünü bul" },
           "on_complete": [
+            { "type": "panic", "arg": "0.35" },
             { "type": "subtitle", "duration": 6.0, "text": { "en": "The weight cable has been cut. Clean through, with a knife. Someone was up here while I was on the radio.", "tr": "Ağırlık halatı kesilmiş. Bıçakla, tertemiz. Ben telsizdeyken biri buradaymış." } }
           ] },
         { "id": "toolbox", "complete_on": "task:toolbox",
@@ -86,6 +96,7 @@
           "text": { "en": "Fit the new cable to the clockwork", "tr": "Yeni halatı zembereğe tak" },
           "on_complete": [
             { "type": "lamp_on" },
+            { "type": "whisper", "delay": 1.0, "duration": 6.0 },
             { "type": "subtitle", "delay": 1.0, "duration": 6.0, "text": { "en": "Footprints on the stairs. Bare feet. And they go down toward the shore, not back to the cottage.", "tr": "Merdivende ayak izleri. Çıplak ayak. Ve kulübeye değil, kıyıya doğru iniyorlar." } }
           ] },
         { "id": "wreck", "complete_on": "read:elias_notebook",
@@ -109,6 +120,8 @@
         { "type": "fade_out", "duration": 0.01 },
         { "type": "teleport", "arg": "wake_cottage" },
         { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
+        { "type": "dread", "arg": "0.3" },
+        { "type": "watcher", "arg": "1", "delay": 45.0 },
         { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Third Night", "tr": "Üçüncü Gece" } },
         { "type": "subtitle", "delay": 5.5, "duration": 6.0, "text": { "en": "M/T-7, stamped on the key. Elias marked the north of the island in his notebook. Three times.", "tr": "Anahtarın üstünde M/T-7 damgası. Elias not defterinde adanın kuzeyini işaretlemiş. Üç kez." } }
       ],
@@ -133,10 +146,19 @@
         { "id": "codes", "complete_on": "read:timing_codes",
           "text": { "en": "Find out what the numbers mean", "tr": "Sayıların ne anlama geldiğini bul" },
           "on_complete": [
-            { "type": "subtitle", "delay": 1.0, "duration": 7.0, "text": { "en": "Three-eighteen. Eleven-forty. They're the lamp's timings. Someone reads my lamp's rhythm out over the air, every night.", "tr": "Üç on sekiz. On bir kırk. Lambanın zamanlamaları bunlar. Biri her gece lambamın ritmini yayında okuyor." } }
+            { "type": "subtitle", "delay": 1.0, "duration": 7.0, "text": { "en": "Three-eighteen. Eleven-forty. They're the lamp's timings. Someone reads my lamp's rhythm out over the air, every night.", "tr": "Üç on sekiz. On bir kırk. Lambanın zamanlamaları bunlar. Biri her gece lambamın ritmini yayında okuyor." } },
+            { "type": "knock", "delay": 10.0 },
+            { "type": "panic", "arg": "0.5", "delay": 10.2 },
+            { "type": "flicker", "delay": 10.2, "duration": 1.5 },
+            { "type": "dread", "arg": "0.45", "delay": 10.0 },
+            { "type": "subtitle", "delay": 12.0, "duration": 6.0, "text": { "en": "...Something knocked on the hatch. Three times. As if it wanted to be let in.", "tr": "...Bir şey kapağa vurdu. Üç kez. İçeri alınmak istiyormuş gibi." } }
           ] },
         { "id": "leave", "complete_on": "use:hatch_up",
-          "text": { "en": "Climb back up", "tr": "Yukarı çık" } },
+          "text": { "en": "Climb back up", "tr": "Yukarı çık" },
+          "on_complete": [
+            { "type": "sting", "arg": "0.5", "delay": 1.5 },
+            { "type": "subtitle", "delay": 2.0, "duration": 5.0, "text": { "en": "Nobody. Just wet marks on the concrete, leading to the cliff edge.", "tr": "Kimse yok. Sadece betonun üstünde, uçurumun kenarına giden ıslak izler." } }
+          ] },
         { "id": "radio", "complete_on": "radio:margaret_n3",
           "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" } },
         { "id": "sleep", "complete_on": "task:sleep",
@@ -156,6 +178,9 @@
         { "type": "storm", "arg": "on" },
         { "type": "fog", "arg": "0.02" },
         { "type": "ambience", "arg": "wind=1.6" },
+        { "type": "dread", "arg": "0.45" },
+        { "type": "watcher", "arg": "2", "delay": 30.0 },
+        { "type": "whisper", "delay": 5.0, "duration": 7.0 },
         { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
         { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Fourth Night", "tr": "Dördüncü Gece" } },
         { "type": "subtitle", "delay": 5.5, "duration": 6.0, "text": { "en": "The floor's wet. Something came in from the sea while I slept, and stood by the bed.", "tr": "Zemin ıslak. Ben uyurken denizden bir şey girmiş ve yatağın başında durmuş." } }
@@ -173,6 +198,10 @@
           "text": { "en": "Report to Hale (2182 kHz)", "tr": "Hale'e rapor ver (2182 kHz)" } },
         { "id": "elias", "complete_on": "radio:elias_n4",
           "text": { "en": "There's another voice in the static. Search the dial", "tr": "Parazitte başka bir ses var. Kadranı tara" },
+          "on_complete": [
+            { "type": "sting", "arg": "0.6" },
+            { "type": "whisper", "duration": 5.0 }
+          ],
           "on_start": [
             { "type": "subtitle", "delay": 1.0, "duration": 5.0, "text": { "en": "...wait. Under the static, lower on the dial. Someone saying my name.", "tr": "...bekle. Parazitin altında, kadranın aşağısında. Biri adımı söylüyor." } }
           ] },
@@ -181,6 +210,9 @@
         { "id": "tape", "complete_on": "task:tape",
           "text": { "en": "Play the tape marked VESPER 7", "tr": "VESPER 7 yazan kaseti çal" },
           "on_complete": [
+            { "type": "whisper", "delay": 5.0, "duration": 12.0 },
+            { "type": "flicker", "delay": 11.0, "duration": 2.0 },
+            { "type": "dread", "arg": "0.6", "delay": 11.0 },
             { "type": "subtitle", "duration": 5.0, "speaker": "TAPE", "text": { "en": "[hiss... a slow, deep pulse, like a heartbeat through water]", "tr": "[cızırtı... yavaş, derin bir nabız, suyun içinden gelen bir kalp atışı gibi]" } },
             { "type": "subtitle", "delay": 5.5, "duration": 5.0, "speaker": "TAPE", "text": { "en": "[the pulse breaks into many voices, rising and falling together]", "tr": "[nabız birçok sese bölünüyor, birlikte yükselip alçalıyorlar]" } },
             { "type": "subtitle", "delay": 11.0, "duration": 5.0, "speaker": "TAPE", "text": { "en": "[they go quiet exactly when the lamp's beam would pass]", "tr": "[fenerin huzmesinin geçeceği anda tam olarak susuyorlar]" } },
@@ -189,6 +221,8 @@
         { "id": "roster", "complete_on": "read:keeper_roster",
           "text": { "en": "Search the records room", "tr": "Kayıt odasını ara" },
           "on_complete": [
+            { "type": "sting", "arg": "1.0", "delay": 6.5 },
+            { "type": "panic", "arg": "0.5", "delay": 6.5 },
             { "type": "subtitle", "delay": 1.0, "duration": 6.0, "text": { "en": "Eleven keepers since 1951. Every one of them marked 'missing'. There's a twelfth line. It's already filled in.", "tr": "1951'den beri on bir bekçi. Hepsinin yanında 'kayıp' yazıyor. On ikinci satır var. Çoktan doldurulmuş." } }
           ] },
         { "id": "leave", "complete_on": "use:hatch_up",
@@ -210,6 +244,10 @@
         { "type": "storm", "arg": "on" },
         { "type": "fog", "arg": "0.028" },
         { "type": "ambience", "arg": "wind=2.0" },
+        { "type": "dread", "arg": "0.6" },
+        { "type": "watcher", "arg": "3", "delay": 20.0 },
+        { "type": "flicker", "delay": 13.0, "duration": 1.5 },
+        { "type": "sting", "arg": "0.7", "delay": 14.0 },
         { "type": "lamp_on" },
         { "type": "fade_in", "duration": 3.0, "delay": 0.5 },
         { "type": "title", "duration": 4.0, "delay": 1.0, "text": { "en": "The Last Night", "tr": "Son Gece" } },
@@ -225,6 +263,9 @@
             { "type": "subtitle", "delay": 1.0, "duration": 5.0, "speaker": "MARGARET", "text": { "en": "Keeper. Keeper, can you hear me? Whatever he tells you, keep it lit.", "tr": "Bekçi. Bekçi, beni duyuyor musun? O sana ne derse desin, yanık tut." } },
             { "type": "subtitle", "delay": 7.0, "duration": 6.0, "speaker": "ELIAS", "text": { "en": "She's Ministry. They put you here to feed it the light. Put it out and it ends.", "tr": "O Bakanlık'tan. Seni buraya ona ışık vermen için koydular. Söndür ve bitsin." } },
             { "type": "subtitle", "delay": 14.0, "duration": 6.0, "speaker": "MARGARET", "text": { "en": "That isn't Elias. Elias has been dead for three weeks. It learned his voice from the tapes.", "tr": "O Elias değil. Elias üç haftadır ölü. Sesini kasetlerden öğrendi." } },
+            { "type": "dread", "arg": "0.75", "delay": 7.0 },
+            { "type": "whisper", "delay": 21.0, "duration": 7.0 },
+            { "type": "panic", "arg": "0.3", "delay": 21.0 },
             { "type": "subtitle", "delay": 21.0, "duration": 6.0, "speaker": "ELIAS", "text": { "en": "I'm on the rocks below you. Look down. Turn it off and I can come home.", "tr": "Tam altındaki kayalıklardayım. Aşağı bak. Söndür, eve gelebileyim." } },
             { "type": "subtitle", "delay": 28.0, "duration": 5.0, "text": { "en": "Fuel or darkness. Someone has to decide.", "tr": "Yakıt ya da karanlık. Birinin karar vermesi gerek." } }
           ] },
@@ -234,6 +275,8 @@
       "events": {
         "task:keep_light": [
           { "type": "lamp_on" },
+          { "type": "watcher", "arg": "0" },
+          { "type": "dread", "arg": "0.05", "delay": 3.0 },
           { "type": "hide", "arg": "fog_lights", "delay": 3.0 },
           { "type": "storm", "arg": "off", "delay": 8.0 },
           { "type": "subtitle", "delay": 4.0, "duration": 5.0, "text": { "en": "The lights in the fog go out, one by one.", "tr": "Sisin içindeki ışıklar teker teker sönüyor." } },
@@ -243,6 +286,12 @@
         ],
         "task:darken": [
           { "type": "lamp_off" },
+          { "type": "watcher", "arg": "0" },
+          { "type": "dread", "arg": "1.0", "delay": 2.0 },
+          { "type": "whisper", "delay": 2.0, "duration": 25.0 },
+          { "type": "crowd", "arg": "on", "delay": 3.0 },
+          { "type": "sting", "arg": "1.0", "delay": 3.0 },
+          { "type": "panic", "arg": "1.0", "delay": 8.0 },
           { "type": "subtitle", "delay": 2.0, "duration": 5.0, "text": { "en": "Dark. Only the storm now. And then, below the storm, the singing.", "tr": "Karanlık. Artık sadece fırtına. Sonra, fırtınanın altında, şarkı." } },
           { "type": "subtitle", "delay": 8.0, "duration": 5.0, "speaker": "ELIAS", "text": { "en": "Thank you. Thank you. We're coming up now.", "tr": "Teşekkürler. Teşekkürler. Şimdi çıkıyoruz." } },
           { "type": "subtitle", "delay": 14.0, "duration": 6.0, "speaker": "MARGARET", "text": { "en": "Skerrow, respond... Skerrow? ...Skerrow Rock, respond.", "tr": "Skerrow, cevap ver... Skerrow? ...Skerrow Rock, cevap ver." } },

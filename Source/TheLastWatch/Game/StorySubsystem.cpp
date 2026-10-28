@@ -13,6 +13,7 @@
 #include "TimerManager.h"
 #include "GameDataSubsystem.h"
 #include "InventoryComponent.h"
+#include "KeeperDirector.h"
 #include "KeeperSaveSubsystem.h"
 #include "LastWatchGameMode.h"
 #include "LastWatchHUD.h"
@@ -91,6 +92,10 @@ void UStorySubsystem::StartNight(int32 Night)
 	for (TActorIterator<AStoryTask> It(GetWorld()); It; ++It)
 	{
 		It->ResetForNight();
+	}
+	if (AKeeperDirector* Director = AKeeperDirector::Get(this))
+	{
+		Director->ResetForNight(Night);
 	}
 	ApplyNightVisibility();
 
@@ -210,6 +215,15 @@ void UStorySubsystem::SkipObjective()
 	}
 }
 
+void UStorySubsystem::RunDebugAction(const FString& Type, const FString& Arg, float Duration)
+{
+	FStoryAction Action;
+	Action.Type = Type;
+	Action.Arg = Arg;
+	Action.Duration = Duration;
+	Execute(Action);
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // Actions
 
@@ -305,6 +319,29 @@ void UStorySubsystem::Execute(const FStoryAction& Action)
 		{
 			It->SetStorm(Action.Arg == TEXT("on"));
 		}
+		if (AKeeperDirector* Director = AKeeperDirector::Get(this))
+		{
+			Director->SetRain(Action.Arg == TEXT("on"));
+		}
+	}
+	else if (Type == TEXT("dread") || Type == TEXT("watcher") || Type == TEXT("sting") || Type == TEXT("knock")
+		|| Type == TEXT("flicker") || Type == TEXT("whisper") || Type == TEXT("panic") || Type == TEXT("crowd"))
+	{
+		AKeeperDirector* Director = AKeeperDirector::Get(this);
+		if (!Director)
+		{
+			UE_LOG(LogTheLastWatch, Warning, TEXT("Story: no director for '%s'"), *Type);
+			return;
+		}
+		const float Value = Action.Arg.IsEmpty() ? 1.0f : FCString::Atof(*Action.Arg);
+		if (Type == TEXT("dread"))        { Director->SetDread(Value); }
+		else if (Type == TEXT("watcher")) { Director->SetWatcherLevel(FMath::RoundToInt(Value)); }
+		else if (Type == TEXT("sting"))   { Director->Sting(Value); }
+		else if (Type == TEXT("knock"))   { Director->Knock(); }
+		else if (Type == TEXT("flicker")) { Director->Flicker(Action.Duration > 0.0f ? Action.Duration : 1.5f); }
+		else if (Type == TEXT("whisper")) { Director->Whisper(Action.Duration > 0.0f ? Action.Duration : 4.0f); }
+		else if (Type == TEXT("panic"))   { Director->AddPanic(Value); }
+		else if (Type == TEXT("crowd"))   { Director->SetCrowd(Action.Arg != TEXT("off")); }
 	}
 	else if (Type == TEXT("fog"))
 	{

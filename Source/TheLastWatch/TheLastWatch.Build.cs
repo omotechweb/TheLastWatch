@@ -20,7 +20,8 @@ public class TheLastWatch : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
-			"Json"
+			"Json",
+			"AudioMixer"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

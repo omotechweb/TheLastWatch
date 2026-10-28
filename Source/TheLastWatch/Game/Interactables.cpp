@@ -7,6 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "GameDataSubsystem.h"
 #include "InventoryComponent.h"
+#include "KeeperDirector.h"
 #include "LastWatchGameMode.h"
 #include "LastWatchPlayerController.h"
 #include "StorySubsystem.h"
@@ -253,6 +254,14 @@ void ARadioSet::Interact(ALastWatchPlayerController* Keeper)
 void ARadioSet::SetUser(ALastWatchPlayerController* Keeper)
 {
 	User = Keeper;
+	if (AKeeperDirector* Director = AKeeperDirector::Get(this))
+	{
+		Director->Click();
+		if (!Keeper)
+		{
+			Director->SetRadio(0.0f, 0.0f, 1.0f);
+		}
+	}
 }
 
 void ARadioSet::Tune(float Delta)
@@ -311,8 +320,18 @@ void ARadioSet::Tick(float DeltaSeconds)
 	float Signal;
 	const FRadioTransmission* Transmission = FindClosestTransmission(Signal);
 
+	// hiss that clears as a station comes in, a whistle while it is close but off, a voice once it is clear
+	AKeeperDirector* Director = AKeeperDirector::Get(this);
+	const bool bClear = Transmission && Signal >= ClearSignal && Transmission->Lines.Num() > 0;
+	const FPlayback* Current = Transmission ? Playback.Find(Transmission->Id) : nullptr;
+	const bool bSpeaking = bClear && !(Current && (Current->bFinished || Current->bInGap));
+	if (Director)
+	{
+		Director->SetRadio(FMath::Lerp(1.0f, 0.25f, FMath::Clamp(Signal, 0.0f, 1.0f)), bSpeaking ? Signal : 0.0f, Signal > 0.0f ? 1.0f - Signal : 1.0f);
+	}
+
 	// only a clear signal carries speech; otherwise the call is paused
-	if (!Transmission || Signal < ClearSignal || Transmission->Lines.Num() == 0)
+	if (!bClear)
 	{
 		Keeper->SetSubtitle(FText::GetEmpty(), FText::GetEmpty());
 		return;

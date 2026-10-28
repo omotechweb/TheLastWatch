@@ -214,6 +214,14 @@ public:
 	UFUNCTION(Exec)
 	void DebugShotAfter(float Seconds);
 
+	/** Runs one story action now: DebugAction crowd on / dread 0.8 / storm on / sting / flicker "" 3 */
+	UFUNCTION(Exec)
+	void DebugAction(const FString& Type, const FString& Arg, float Duration);
+
+	/** Puts the Watcher straight ahead, Distance cm away (if there is open ground there) */
+	UFUNCTION(Exec)
+	void DebugWatcher(float Distance);
+
 	/** Opens a menu page without input: title, pause, settings, chapters */
 	UFUNCTION(Exec)
 	void DebugMenu(const FString& Page);
@@ -257,6 +265,7 @@ protected:
 	void OnTuneWheel(const FInputActionValue& Value);
 	void OnPause();
 	void OnMenuConfirm();
+	void OnFlashlight();
 
 	void SetMenuPage(EMenuPage Page);
 	void ShowCursor(bool bShow);
@@ -281,6 +290,10 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UInputAction> TuneWheelAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> PauseAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> MenuConfirmAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> FlashlightAction;
+
+	/** When stamina was last below full; the sprint meter hides a moment after it refills */
+	float LastSprintUse = -100.0f;
 
 	/** Always active: interact, inventory */
 	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> ExploreContext;

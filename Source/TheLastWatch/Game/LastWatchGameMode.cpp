@@ -4,6 +4,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "LastWatchPlayerController.h"
 #include "LastWatchHUD.h"
+#include "KeeperDirector.h"
 #include "KeeperSaveSubsystem.h"
 #include "StorySubsystem.h"
 #include "Misc/CommandLine.h"
@@ -24,6 +25,9 @@ ALastWatchGameMode::ALastWatchGameMode()
 void ALastWatchGameMode::StartPlay()
 {
 	Super::StartPlay();
+
+	// mood, weather and the things in the fog
+	GetWorld()->SpawnActor<AKeeperDirector>();
 
 	// a frame later, so the HUD and the keeper's pawn are in place for the opening actions
 	FTimerHandle Handle;

@@ -31,6 +31,9 @@
 #include "Interactables.h"
 #include "KeeperSaveSubsystem.h"
 #include "InventoryComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "HorrorCharacter.h"
+#include "KeeperDirector.h"
 #include "LastWatchGameMode.h"
 #include "LastWatchHUD.h"
 #include "LighthouseBeam.h"
@@ -98,8 +101,11 @@ void ALastWatchPlayerController::CreateKeeperInput()
 	TuneWheelAction  = MakeAction(this, TEXT("IA_TuneWheel"), EInputActionValueType::Axis1D);
 	PauseAction      = MakeAction(this, TEXT("IA_Pause"));
 	MenuConfirmAction = MakeAction(this, TEXT("IA_MenuConfirm"));
+	FlashlightAction = MakeAction(this, TEXT("IA_Flashlight"));
 
 	ExploreContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Keeper"));
+	ExploreContext->MapKey(FlashlightAction, EKeys::F);
+	ExploreContext->MapKey(FlashlightAction, EKeys::Gamepad_LeftShoulder);
 	ExploreContext->MapKey(InteractAction, EKeys::E);
 	ExploreContext->MapKey(InteractAction, EKeys::Gamepad_FaceButton_Bottom);
 	ExploreContext->MapKey(JumpAction, EKeys::SpaceBar);
@@ -199,6 +205,7 @@ void ALastWatchPlayerController::SetupInputComponent()
 		Input->BindAction(TuneWheelAction, ETriggerEvent::Triggered, this, &ALastWatchPlayerController::OnTuneWheel);
 		Input->BindAction(PauseAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnPause);
 		Input->BindAction(MenuConfirmAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnMenuConfirm);
+		Input->BindAction(FlashlightAction, ETriggerEvent::Started, this, &ALastWatchPlayerController::OnFlashlight);
 	}
 	else
 	{
@@ -256,6 +263,20 @@ void ALastWatchPlayerController::OnCrouchReleased()
 	if (ACharacter* KeeperCharacter = Cast<ACharacter>(GetPawn()))
 	{
 		KeeperCharacter->UnCrouch();
+	}
+}
+
+void ALastWatchPlayerController::OnFlashlight()
+{
+	const AHorrorCharacter* KeeperCharacter = Cast<AHorrorCharacter>(GetPawn());
+	USpotLightComponent* Lamp = KeeperCharacter ? KeeperCharacter->GetFlashlight() : nullptr;
+	if (Lamp && Mode == EKeeperMode::Explore)
+	{
+		Lamp->SetVisibility(!Lamp->IsVisible());
+		if (AKeeperDirector* Director = AKeeperDirector::Get(this))
+		{
+			Director->Click();
+		}
 	}
 }
 
@@ -358,6 +379,17 @@ void ALastWatchPlayerController::PlayerTick(float DeltaTime)
 	if (Mode == EKeeperMode::Explore)
 	{
 		UpdateFocus();
+
+		// the template's sprint meter only shows while stamina is being spent or refilling
+		if (const AHorrorCharacter* KeeperCharacter = Cast<AHorrorCharacter>(GetPawn()); KeeperCharacter && HorrorUI)
+		{
+			const float Now = GetWorld()->GetTimeSeconds();
+			if (KeeperCharacter->GetSprintPercent() < 0.999f)
+			{
+				LastSprintUse = Now;
+			}
+			HorrorUI->SetVisibility(Now - LastSprintUse < 1.5f ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		}
 	}
 	else if (IsInMenu(EMenuPage::Title))
 	{
@@ -891,6 +923,7 @@ TArray<FMenuEntry> ALastWatchPlayerController::GetMenuEntries() const
 			Entries.Add(MakeEntry(this, TEXT("sensitivity"), TEXT("set.sensitivity"), FText::FromString(FString::Printf(TEXT("%.1f"), Settings->MouseSensitivity))));
 			Entries.Add(MakeEntry(this, TEXT("invert"), TEXT("set.invert"), OnOff(this, Settings->bInvertY)));
 			Entries.Add(MakeEntry(this, TEXT("fov"), TEXT("set.fov"), FText::FromString(FString::Printf(TEXT("%d°"), FMath::RoundToInt(Settings->FieldOfView)))));
+			Entries.Add(MakeEntry(this, TEXT("headbob"), TEXT("set.headbob"), OnOff(this, Settings->bHeadBob)));
 			Entries.Add(MakeEntry(this, TEXT("volume"), TEXT("set.volume"), FText::FromString(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Settings->MasterVolume * 100.0f)))));
 		}
 		Entries.Add(MakeEntry(this, TEXT("back"), TEXT("menu.back")));
@@ -926,6 +959,7 @@ void ALastWatchPlayerController::ActivateMenuEntry(int32 Index, int32 Direction)
 		else if (Id == TEXT("objectives"))  { Settings->bShowObjectives = !Settings->bShowObjectives; }
 		else if (Id == TEXT("sensitivity")) { Settings->MouseSensitivity = FMath::Clamp(FMath::RoundToFloat((Settings->MouseSensitivity + 0.1f * Step) * 10.0f) / 10.0f, 0.2f, 3.0f); }
 		else if (Id == TEXT("invert"))      { Settings->bInvertY = !Settings->bInvertY; }
+		else if (Id == TEXT("headbob"))     { Settings->bHeadBob = !Settings->bHeadBob; }
 		else if (Id == TEXT("fov"))         { Settings->FieldOfView = FMath::Clamp(Settings->FieldOfView + 5.0f * Step, 70.0f, 110.0f); }
 		else if (Id == TEXT("volume"))      { Settings->MasterVolume = FMath::Clamp(FMath::RoundToFloat((Settings->MasterVolume + 0.1f * Step) * 10.0f) / 10.0f, 0.0f, 1.0f); }
 		else { bChanged = false; }
@@ -1082,6 +1116,22 @@ void ALastWatchPlayerController::DebugStoryEvent(const FString& Event)
 	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
 	{
 		Story->Notify(Event);
+	}
+}
+
+void ALastWatchPlayerController::DebugAction(const FString& Type, const FString& Arg, float Duration)
+{
+	if (UStorySubsystem* Story = UStorySubsystem::Get(this))
+	{
+		Story->RunDebugAction(Type, Arg, Duration > 0.0f ? Duration : 4.0f);
+	}
+}
+
+void ALastWatchPlayerController::DebugWatcher(float Distance)
+{
+	if (AKeeperDirector* Director = AKeeperDirector::Get(this))
+	{
+		Director->SpawnWatcherAhead(Distance > 0.0f ? Distance : 2500.0f);
 	}
 }
 

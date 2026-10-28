@@ -54,6 +54,9 @@ public:
 	/** Debug: completes the current objective as if its event happened */
 	void SkipObjective();
 
+	/** Debug: runs one story action right now, e.g. ("crowd", "on") */
+	void RunDebugAction(const FString& Type, const FString& Arg, float Duration);
+
 private:
 
 	const FNightData* GetNightData() const;
