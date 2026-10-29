@@ -267,7 +267,7 @@ void AStormController::SetMoon(float Intensity)
 {
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
-		It->GetComponent()->SetIntensity(Intensity);
+		It->GetLightComponent()->SetIntensity(Intensity);
 	}
 }
 
@@ -282,7 +282,7 @@ void AStormController::SetStorm(bool bOn)
 	{
 		for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 		{
-			BaseIntensity = It->GetComponent()->Intensity;
+			BaseIntensity = It->GetLightComponent()->Intensity;
 		}
 		ScheduleFlash();
 	}

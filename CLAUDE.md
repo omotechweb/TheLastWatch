@@ -23,6 +23,7 @@ Tasarımın tamamı `GDD.md` içinde — her özellikten önce ilgili bölümü 
 
 - Derleme (editör **kapalıyken**): `powershell -File Scripts/build.ps1`
 - Oyunu editörsüz çalıştır: `powershell -File Scripts/play.ps1` (isteğe bağlı `-Map /Game/...`)
+- Dağıtım: `powershell -File Scripts/build_installer.ps1 [-Version 0.1.0] [-SkipPackage]` — Shipping paketler (`Saved/Package/Windows`), Inno Setup ile `Saved/Installer/TheLastWatch-Setup-<sürüm>.exe` üretir (editör kapalı). Shipping'de `WITH_EDITORONLY_DATA` yok: editöre özel getter'lar (ör. `ADirectionalLight::GetComponent`) derlenmez.
 - Editör: `C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\Win64\UnrealEditor.exe`
 - Editör Python betiği çalıştır (editör kapalıyken): `powershell -File Scripts/run_python.ps1 Scripts/Editor/<betik>.py` — dosya/doku içe aktaran betikler `-Editor` ister (komut satırı modunda içe aktarma çöker).
 - Ekran görüntüsü al (HUD dahil): `powershell -File Scripts/screenshot.ps1 -Commands "DebugOpenNote elias_01" -Out Saved\Screenshots\x.png` — sonucu Read ile incele. Görsel değişiklikleri böyle doğrula. Betik oyunu `-NoMenu` ile açar (ana menü atlanır, doğrudan 1. gece; kayıt dosyasına yazılmaz). Menüyü görmek için `-Title`, belirli bir sayfa için `-Title -Commands "DebugMenu settings"` (title/pause/settings/chapters; duraklatma için `"DebugSetNight 1, DebugMenu pause"`). `-Title` ile hikâye başlatılırsa gerçek kayda yazılır; testten sonra `Saved/SaveGames/Progress.sav`'ı sil.
