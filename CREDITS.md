@@ -11,7 +11,7 @@ must be added to the project from Fab before the game will build its maps
 
 ## Fab Standard License
 
-- **Huge Nordic Coastal Cliff** — Quixel Megascans — imported to `Content/Imported/Cliffs`
+- **Huge Nordic Coastal Cliff** — Quixel Megascans — `Content/Imported/Cliffs` *(not in git: download the FBX from Fab into `Imports/` and run `Scripts/Editor/import_assets.py`)*
 - **Modular Rural Cabins** — Maarten Hof — `Content/Modular_Rural_Cabin` *(not in git)*
 - **Old Furniture Pack** — BB Arts — `Content/OldFurniturePack_01` *(not in git)*
 - **Military Radio** — DTry — `Content/Military_Radio` *(not in git)*
