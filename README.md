@@ -19,6 +19,14 @@
 ![Nights](https://img.shields.io/badge/Story-5_nights_·_2_endings-8D0801?style=flat-square)
 ![Combat](https://img.shields.io/badge/Combat-none-3A5A40?style=flat-square)
 
+<br>
+
+<a href="https://github.com/omotechweb/TheLastWatch/releases/latest"><img src="https://img.shields.io/badge/⬇_Download_for_Windows-v0.1.0-C9A227?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="42"></a>
+
+<sub>Windows 10/11 · 64-bit · ≈1.1 GB installer</sub>
+
+<br><br>
+
 [About](#-about) · [Screenshots](#-screenshots) · [Features](#-features) · [Controls](#-controls) · [Building](#-building-from-source) · [Under the hood](#-under-the-hood) · [Credits](#-credits) · [Türkçe](#-türkçe)
 
 </div>
@@ -130,6 +138,9 @@ Each night the rock is a little different. The story is written into the place i
 ---
 
 ## 🛠️ Building from source
+
+> [!TIP]
+> Just want to play? Grab the installer from [**Releases**](https://github.com/omotechweb/TheLastWatch/releases/latest). The steps below are only for building the game yourself.
 
 > [!IMPORTANT]
 > Several third-party art and sound packs from [Fab](https://www.fab.com) are **not stored in this repository**, because their licences don't allow redistribution. They are all free; [`CREDITS.md`](CREDITS.md) lists every one with its link and target folder. Without them the code compiles, but the island map can't be built.
@@ -261,7 +272,7 @@ Built on Unreal Engine 5.7. Third-party assets remain the property of their crea
 - Elle ayarlanan telsiz, cevap verilebilen çağrılar, sayı istasyonu
 - Bütün metinler ve altyazılar **İngilizce ve Türkçe**, oyun içinden değiştirilebilir
 
-Derleme adımları yukarıdaki [Building from source](#-building-from-source) bölümünde.
+**İndir:** Kurulum dosyası [Releases](https://github.com/omotechweb/TheLastWatch/releases/latest) sayfasında (Windows 10/11, 64-bit). Derleme adımları yukarıdaki [Building from source](#-building-from-source) bölümünde.
 
 <div align="center">
 
